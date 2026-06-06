@@ -78,3 +78,7 @@ Walkthrough:
   See:
        .\WALKTHROUGH.txt
 
+License:
+  MIT License. See:
+       .\LICENSE
+
