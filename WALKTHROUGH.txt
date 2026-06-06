@@ -15,6 +15,8 @@ Windows Update resurrected something stupid again...             '----'
 >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< ><
 
 Microsludge Degoblin Walkthrough
+Version:
+  See VERSION in the package root.
 
 What this package is:
   A general-use Windows cleanup package for Microsoft app and policy resurrections.
@@ -33,6 +35,13 @@ Admin requirement:
   Admin is required for detection reports, dry run, apply, the console wizard,
   and scheduled-task installer. The GUI can open normally and relaunch itself
   elevated; console paths stop if they are not elevated.
+
+System requirements:
+  - Windows 10 or Windows 11
+  - Windows PowerShell 5.1
+  - Administrator approval for report, dry run, apply, task install, and task removal
+  - Task Scheduler enabled for automatic cleanup
+  - Free space in C:\ProgramData for the installed package copy and logs
 
 Recommended first run:
   GUI:
@@ -70,8 +79,8 @@ Wizard mode:
   Wizard run modes:
     - Dry run now: logs what would change, changes nothing
     - Apply now: performs the selected cleanup immediately
-    - Install post-update task: saves the selected options for runs when Windows Update evidence is found
-    - Uninstall post-update task: removes the saved automatic cleanup task
+    - Install post-update task: installs a ProgramData copy and saves the selected options for runs when Windows Update evidence is found
+    - Uninstall post-update task: removes the saved automatic cleanup task and installed ProgramData copy
     - Test for Windows AI targets: report only, changes nothing
 
 Manual dry run:
@@ -170,6 +179,13 @@ Optional stronger switches:
 
 Scheduled task walkthrough:
 
+  Installing the task copies the runnable package to:
+    C:\ProgramData\Microsludge-Degoblin
+
+  The scheduled task runs from that installed copy, so the downloaded package
+  folder can be moved or deleted after install. Running the installer again
+  refreshes the installed copy while preserving installed logs.
+
   Install default post-update task:
     powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1
 
@@ -181,6 +197,8 @@ Scheduled task walkthrough:
 
   Remove scheduled task:
     powershell -ExecutionPolicy Bypass -File .\Scripts\Uninstall-Microsludge-DegoblinTask.ps1
+
+    This removes the scheduled task and the installed ProgramData package copy.
 
   What the scheduled task does:
     - Runs at user logon
@@ -203,5 +221,8 @@ What it intentionally does not do:
   - Does not try to become a full debloat script
 
 Where logs go:
-  .\Logs
+  Manual GUI and console runs:
+    .\Logs
 
+  Installed scheduled-task runs:
+    C:\ProgramData\Microsludge-Degoblin\Logs

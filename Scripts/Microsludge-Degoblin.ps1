@@ -58,6 +58,7 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logRoot = Join-Path $repoRoot "Logs"
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $logPath = Join-Path $logRoot "Microsludge-Degoblin-$timestamp.log"
+$packageVersion = Get-MicrosludgeVersion -Root $repoRoot
 
 function Write-Log {
     param([string]$Message)
@@ -286,6 +287,7 @@ function Disable-ServiceIfPresent {
 }
 
 Write-Log "Starting Microsludge-Degoblin.ps1"
+Write-Log "Version: $packageVersion"
 Write-Log "Mode: $(if ($Apply) { 'APPLY' } else { 'DRY RUN' })"
 Write-Log "Log: $logPath"
 $selectedSwitches = @{

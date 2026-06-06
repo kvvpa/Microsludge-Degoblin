@@ -4,6 +4,34 @@ function Test-MicrosludgeIsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Get-MicrosludgeInstallRoot {
+    return (Join-Path ([Environment]::GetFolderPath("CommonApplicationData")) "Microsludge-Degoblin")
+}
+
+function Get-MicrosludgeVersion {
+    param([string]$Root)
+
+    if ([string]::IsNullOrWhiteSpace($Root)) {
+        return "unknown"
+    }
+
+    $versionPath = Join-Path $Root "VERSION"
+    if (-not (Test-Path -LiteralPath $versionPath)) {
+        return "unknown"
+    }
+
+    try {
+        $version = Get-Content -LiteralPath $versionPath -TotalCount 1 -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($version)) {
+            return "unknown"
+        }
+
+        return $version.Trim()
+    } catch {
+        return "unknown"
+    }
+}
+
 function Get-MicrosludgeCleanupSwitchNames {
     return @(
         "BlockOneDrive",

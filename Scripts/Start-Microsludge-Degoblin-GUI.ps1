@@ -30,6 +30,8 @@ if (-not (Test-Path -LiteralPath $helpers)) {
 . $helpers
 
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
+$packageVersion = Get-MicrosludgeVersion -Root $repoRoot
+$installRoot = Get-MicrosludgeInstallRoot
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -660,7 +662,7 @@ function Start-GuiWizard {
 
     $steps.Add([pscustomobject]@{
         Title = "Scheduled task behavior"
-        Body = "This only matters when you click Install task. Off means the task runs after logon only when Windows Update evidence is found. On means it runs at every logon."
+        Body = "This only matters when you click Install task. Install task copies the runnable package to C:\ProgramData\Microsludge-Degoblin. Off means the task runs after logon only when Windows Update evidence is found. On means it runs at every logon."
         ChoiceText = "Run the scheduled task at every logon"
         Control = $CheckAlwaysApply
     })
@@ -864,7 +866,7 @@ $ApplyButton.Add_Click({
 
 $InstallTaskButton.Add_Click({
     $args = Get-GuiWrapperArgs
-    $message = "Install the scheduled task with the selected options?"
+    $message = "Install the scheduled task with the selected options?`r`n`r`nThe runnable package will be copied to:`r`n$installRoot"
     if ([bool]$CheckAlwaysApply.IsChecked) {
         $message += "`r`n`r`nIt will run at every logon."
     } else {
@@ -881,8 +883,14 @@ $InstallTaskButton.Add_Click({
 })
 
 $UninstallTaskButton.Add_Click({
-    if (Confirm-GuiAction -Message "Remove the Microsludge Degoblin scheduled task?" -Title "Uninstall scheduled task") {
-        Invoke-GuiScript -Label "Removing scheduled task." -ScriptPath $uninstallerScript -ExtraArgs @()
+    if (Confirm-GuiAction -Message "Remove the Microsludge Degoblin scheduled task and installed ProgramData copy?" -Title "Uninstall scheduled task") {
+        Invoke-GuiScript -Label "Removing scheduled task and installed package copy." -ScriptPath $uninstallerScript -ExtraArgs @()
+        $repoFullPath = [System.IO.Path]::GetFullPath($repoRoot).TrimEnd("\")
+        $installFullPath = [System.IO.Path]::GetFullPath($installRoot).TrimEnd("\")
+        if ($repoFullPath -eq $installFullPath) {
+            Add-GuiLog "Closing installed GUI so package removal can finish."
+            $window.Close()
+        }
     }
 })
 
@@ -897,6 +905,7 @@ $OpenLogsButton.Add_Click({
 $window.Add_ContentRendered({
     Add-GuiBanner
     Add-GuiLog "Microsludge Degoblin GUI ready."
+    Add-GuiLog "Version: $packageVersion"
     Add-GuiLog "Run the AI report before enabling Windows AI cleanup."
     Update-GuiState
     Update-GuiSummary

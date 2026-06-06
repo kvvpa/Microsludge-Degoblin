@@ -2,6 +2,8 @@
 
 # Microsludge Degoblin
 
+Current version: `0.2.0` (see `VERSION`).
+
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
 It targets things like Copilot, OneDrive startup entries, new Outlook, Edge background behavior, widgets, ads, suggestions, and optional Windows AI policies. It can run once, do a dry run first, or install a scheduled task that re-checks after Windows Update activity.
@@ -15,6 +17,14 @@ It has both a PowerShell console walkthrough and a GUI with guided setup, so use
 - `WALKTHROUGH.txt`: longer plain-English walkthrough.
 - `Scripts\`: the PowerShell engine room for debugging and manual commands.
 - `Assets\`: pictures used by the GUI and README.
+
+## System Requirements
+
+- Windows 10 or Windows 11
+- Windows PowerShell 5.1
+- Administrator approval for detection reports, dry run, apply, task install, and task removal
+- Task Scheduler enabled for the post-update automatic cleanup task
+- Free space in `C:\ProgramData` for the installed copy and logs
 
 ## Default Targets
 
@@ -142,6 +152,14 @@ Optional stronger switches:
 
 ## Scheduled Task
 
+Installing the scheduled task copies the runnable package to:
+
+```text
+C:\ProgramData\Microsludge-Degoblin
+```
+
+The task runs from that installed copy, so the downloaded package folder can be moved or deleted after task install. Running the installer again refreshes the installed copy while preserving installed logs. Running the uninstaller removes both the scheduled task and the installed package copy.
+
 Install the Windows Update-aware scheduled task:
 
 ```powershell
@@ -170,7 +188,13 @@ By default, the task runs at logon, waits two minutes, and only applies cleanup 
 
 ## Logs
 
-Logs are written to `.\Logs`.
+Manual GUI and console runs write logs to `.\Logs` in whichever package copy launched the script.
+
+Installed scheduled-task runs write logs to:
+
+```text
+C:\ProgramData\Microsludge-Degoblin\Logs
+```
 
 Apply runs and automated wrapper runs prune old logs, keeping the 20 most recent logs and removing logs older than 90 days.
 
@@ -181,6 +205,10 @@ GUI and README art is stored in `.\Assets`.
 ## Walkthrough
 
 See `.\WALKTHROUGH.txt`.
+
+## Versioning
+
+The package version lives in `VERSION` and uses `major.minor.patch` numbering. Scripts log the version at startup, and the scheduled-task installer writes the installed version into the task description.
 
 ## Feed the Goblin
 

@@ -122,8 +122,10 @@ $switchValues = @{
 }
 
 $optionSummary = Get-MicrosludgeOptionSummary -Values $switchValues -Names (Get-MicrosludgeWrapperSwitchNames)
+$packageVersion = Get-MicrosludgeVersion -Root $repoRoot
 
 Write-AutoLog "Starting automated Microsludge Degoblin check."
+Write-AutoLog "Version: $packageVersion"
 Write-AutoLog "Mode: $(if ($TestOnly) { 'TEST ONLY' } elseif ($AlwaysApply) { 'APPLY AT EVERY SCHEDULED LAUNCH' } else { 'APPLY IF WINDOWS UPDATE EVIDENCE IS FOUND' })"
 Write-AutoLog "Options: $optionSummary"
 Write-AutoLog "Wrapper log: $logPath"

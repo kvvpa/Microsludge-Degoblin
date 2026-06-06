@@ -180,8 +180,8 @@ function Start-Wizard {
     Write-Host "Run modes:"
     Write-Host "  1. Dry run now: logs what would change, changes nothing."
     Write-Host "  2. Apply now: performs the selected cleanup immediately."
-    Write-Host "  3. Install post-update task: saves these choices for automatic cleanup when Windows Update evidence is found."
-    Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task."
+    Write-Host "  3. Install post-update task: copies this package to ProgramData and saves these choices for automatic cleanup when Windows Update evidence is found."
+    Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task and installed ProgramData copy."
     Write-Host "  5. Test for Windows AI targets: report only, changes nothing."
     Write-Host "  Q. Quit"
     Write-Host ""
@@ -202,7 +202,7 @@ function Start-Wizard {
 
     if ($modeChoice -eq "4") {
         Write-Host ""
-        Write-Host "This removes the saved scheduled task. It does not undo previous cleanup changes."
+        Write-Host "This removes the saved scheduled task and installed ProgramData copy. It does not undo previous cleanup changes."
         Write-Host ""
         Write-Host "Command:"
         Write-Host (Format-CommandLine -ScriptPath $uninstallerScript -ExtraArgs @())
@@ -416,7 +416,7 @@ function Show-Menu {
     Write-Host "7. Install post-update scheduled task"
     Write-Host "8. Install every-logon scheduled task"
     Write-Host "9. Install post-update task with OneDrive block and Edge update disable"
-    Write-Host "10. Uninstall scheduled task"
+    Write-Host "10. Uninstall scheduled task and installed copy"
     Write-Host "11. Test for Windows AI targets"
     Write-Host "12. Open walkthrough text"
     Write-Host "Q. Quit"
