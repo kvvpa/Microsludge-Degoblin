@@ -16,7 +16,7 @@ Default targets:
   - SoftLanding scheduled tasks
 
 Default non-targets:
-  - Does not move Documents or other shell folders
+  - Does not move user folders or change shell-folder mappings
   - Does not disable third-party startup items
   - Does not remove Edge browser itself
   - Does not remove or block WebView2

@@ -129,11 +129,11 @@ Scheduled task walkthrough:
     - Runs Microsludge-Degoblin.ps1 -Apply only when Windows Update evidence is found
 
 What it intentionally does not do:
-  - Does not move Documents, Pictures, Desktop, or other shell folders
+  - Does not move user folders or change shell-folder mappings
   - Does not remove Edge browser itself
   - Does not remove WebView2
   - Does not disable random third-party startup entries
-  - Does not touch Xbox, Windows Security, Realtek, printer, VPN, backup, or vendor tools
+  - Does not touch unrelated system components, device drivers, security tools, sync tools, or vendor utilities
   - Does not try to become a full debloat script
 
 Where logs go:

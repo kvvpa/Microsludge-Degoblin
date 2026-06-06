@@ -16,11 +16,11 @@ Default targets:
   - SoftLanding, creative, and deferral scheduled tasks
 
 Default non-targets:
-  - Does not move Documents or other shell folders
+  - Does not move user folders or change shell-folder mappings
   - Does not disable third-party startup items
   - Does not remove Edge browser itself
   - Does not remove or block WebView2
-  - Does not remove Xbox, Windows Security, Realtek, printer, VPN, backup, or vendor tools
+  - Does not touch unrelated system components, device drivers, security tools, sync tools, or vendor utilities
   - Does not uninstall OneDrive unless -RemoveOneDrive is explicitly passed
   - Does not disable Edge update services/tasks unless -DisableEdgeUpdates is explicitly passed
 
