@@ -308,6 +308,18 @@ function Add-GuiLog {
     $OutputBox.ScrollToEnd()
 }
 
+function Add-GuiProcessOutput {
+    param([string]$Message)
+
+    if ($Message -match '^\[\d{2}:\d{2}:\d{2}\]') {
+        $OutputBox.AppendText("$Message`r`n")
+        $OutputBox.ScrollToEnd()
+        return
+    }
+
+    Add-GuiLog $Message
+}
+
 function Add-GuiBanner {
     $banner = @'
 >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< >< ><
@@ -465,7 +477,7 @@ function Invoke-GuiScript {
 
         & powershell.exe @runArgs *>&1 |
             ForEach-Object {
-                Add-GuiLog "$_"
+                Add-GuiProcessOutput "$_"
             }
 
         $exitCode = $LASTEXITCODE

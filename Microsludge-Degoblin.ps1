@@ -90,7 +90,27 @@ function Set-RegDword {
         [int]$Value
     )
 
-    reg.exe add $Path /v $Name /t REG_DWORD /d $Value /f | Out-Null
+    $target = "$Path\$Name"
+    try {
+        $output = @(reg.exe add $Path /v $Name /t REG_DWORD /d $Value /f 2>&1)
+        $exitCode = $LASTEXITCODE
+        $outputText = (@($output) | ForEach-Object { "$_" }) -join " "
+
+        if ($exitCode -ne 0) {
+            if ([string]::IsNullOrWhiteSpace($outputText)) {
+                $outputText = "reg.exe exited with code $exitCode."
+            } else {
+                $outputText = "reg.exe exited with code ${exitCode}: $outputText"
+            }
+
+            Write-Log "ERROR: Registry write failed: $target = $Value. $outputText"
+            return
+        }
+
+        Write-Log "OK: Registry write: $target = $Value"
+    } catch {
+        Write-Log "ERROR: Registry write failed: $target = $Value. $($_.Exception.Message)"
+    }
 }
 
 function Write-RegDwordCheck {
