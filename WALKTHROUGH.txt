@@ -1,0 +1,112 @@
+Microsludge Degoblin Walkthrough
+
+What this package is:
+  A general-use Windows cleanup package for Microsoft app and policy resurrections.
+  It is meant for Copilot, OneDrive, Edge background behavior, new Outlook, GameAssist,
+  consumer-content suggestions, widgets/news, and similar Microsoft extras.
+
+What "dry run" means:
+  Running Microsludge-Degoblin.ps1 without -Apply does not change the machine.
+  It logs every action it would take.
+
+What "apply" means:
+  Running Microsludge-Degoblin.ps1 with -Apply performs the disablings, deletions,
+  scheduled task changes, service changes, Appx removals, and registry policy edits.
+
+Recommended first run:
+  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
+
+Manual dry run:
+  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
+
+Manual apply:
+  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
+
+Stronger manual apply:
+  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
+
+Optional OneDrive uninstall:
+  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
+
+Exact default cleanup:
+
+  Copilot:
+    - Removes installed Appx packages matching *copilot*
+    - Removes provisioned packages matching *Copilot*
+    - Sets HKCU WindowsCopilot TurnOffWindowsCopilot = 1
+    - Sets HKLM WindowsCopilot TurnOffWindowsCopilot = 1
+    - Removes Copilot startup Run/RunOnce entries
+
+  OneDrive:
+    - Stops OneDrive.exe when running
+    - Removes OneDrive and OneDriveSetup startup Run/RunOnce entries
+    - Disables scheduled tasks with OneDrive in their task path or name
+    - Does not uninstall OneDrive unless -RemoveOneDrive is passed
+    - Does not block OneDrive file sync unless -BlockOneDrive is passed
+
+  Outlook for Windows:
+    - Removes installed Microsoft.OutlookForWindows Appx package
+    - Removes provisioned Microsoft.OutlookForWindows package
+
+  Edge:
+    - Removes installed Microsoft.Edge.GameAssist Appx package
+    - Removes provisioned Edge GameAssist packages
+    - Sets Edge StartupBoostEnabled = 0
+    - Sets Edge BackgroundModeEnabled = 0
+    - Sets Edge HideFirstRunExperience = 1
+    - Sets Edge HubsSidebarEnabled = 0
+    - Removes Edge background autolaunch startup entries
+    - Leaves Edge browser itself installed
+    - Leaves Edge update services/tasks alone unless -DisableEdgeUpdates is passed
+    - Leaves WebView2 alone
+
+  Microsoft consumer content:
+    - Disables advertising ID
+    - Disables tailored experiences with diagnostic data
+    - Disables ContentDeliveryManager suggestions and silent app installs
+    - Disables taskbar widgets/news user setting
+    - Sets Windows CloudContent policies to block consumer features
+    - Reduces Windows telemetry policy to the lowest broadly accepted Pro/Home value
+    - Disables activity feed publishing/upload policies
+    - Disables News and Interests policy
+    - Disables SoftLanding, Creative, and Deferral scheduled tasks
+
+Optional stronger switches:
+
+  -BlockOneDrive:
+    Sets HKLM Windows OneDrive DisableFileSyncNGSC = 1.
+    This blocks OneDrive file sync by policy.
+
+  -RemoveOneDrive:
+    Runs OneDriveSetup.exe /uninstall when found under Windows or LocalAppData.
+
+  -DisableEdgeUpdates:
+    Disables MicrosoftEdgeUpdate scheduled tasks.
+    Stops and disables edgeupdate and edgeupdatem services.
+    This can affect Edge and WebView2 update freshness.
+
+Scheduled task walkthrough:
+
+  Install default post-update task:
+    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1
+
+  Install stronger post-update task:
+    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
+
+  What the scheduled task does:
+    - Runs at user logon
+    - Waits two minutes
+    - Checks whether the most recent reboot appears tied to Windows Update
+    - Runs Microsludge-Degoblin.ps1 -Apply only when Windows Update evidence is found
+
+What it intentionally does not do:
+  - Does not move Documents, Pictures, Desktop, or other shell folders
+  - Does not remove Edge browser itself
+  - Does not remove WebView2
+  - Does not disable random third-party startup entries
+  - Does not touch Xbox, Windows Security, Realtek, printer, VPN, backup, or vendor tools
+  - Does not try to become a full debloat script
+
+Where logs go:
+  .\Logs
+
