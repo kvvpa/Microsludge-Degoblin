@@ -236,7 +236,6 @@ $xaml = @'
                     <Button x:Name="InstallTaskButton" Content="Install task" Width="102"/>
                     <Button x:Name="UninstallTaskButton" Content="Remove task" Width="102"/>
                     <Button x:Name="OpenLogsButton" Content="Logs" Width="74"/>
-                    <Button x:Name="ShowSplashButton" Content="Splash" Width="78"/>
                 </WrapPanel>
 
                 <TextBox x:Name="OutputBox"
@@ -281,7 +280,6 @@ $ApplyButton = $window.FindName("ApplyButton")
 $InstallTaskButton = $window.FindName("InstallTaskButton")
 $UninstallTaskButton = $window.FindName("UninstallTaskButton")
 $OpenLogsButton = $window.FindName("OpenLogsButton")
-$ShowSplashButton = $window.FindName("ShowSplashButton")
 $OutputBox = $window.FindName("OutputBox")
 
 $headerBitmap = New-MicrosludgeBitmap -Path $headerImagePath
@@ -376,7 +374,6 @@ function Update-GuiState {
     }
 
     $OpenLogsButton.IsEnabled = -not $script:Busy
-    $ShowSplashButton.IsEnabled = -not $script:Busy
     $ElevateButton.IsEnabled = (-not $isAdmin -and -not $script:Busy)
     $CheckWindowsAI.IsEnabled = ($isAdmin -and -not $script:Busy -and $script:WindowsAITargetFound)
 }
@@ -572,10 +569,6 @@ $OpenLogsButton.Add_Click({
     }
 
     Start-Process explorer.exe -ArgumentList ('"{0}"' -f $logRoot)
-})
-
-$ShowSplashButton.Add_Click({
-    Show-MicrosludgeSplash -Path $splashImagePath
 })
 
 $window.Add_ContentRendered({
