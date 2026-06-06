@@ -63,6 +63,9 @@ Windows AI detection:
 
   It does not change registry values, packages, features, services, tasks, or processes.
 
+  In wizard mode, this report runs as a preflight. The wizard only asks about
+  Windows AI cleanup when the report finds related targets.
+
 Skip switches:
   -SkipCopilot
   -SkipOneDrive
@@ -86,6 +89,11 @@ Optional stronger switches:
   -DisableEdgeUpdates
       Disables MicrosoftEdgeUpdate scheduled tasks and edgeupdate/edgeupdatem services.
       This can also affect WebView2 update freshness, so it is opt-in.
+
+  -DisableWindowsAI
+      Applies source-backed Windows AI policies for Recall availability/snapshots,
+      Click to Do, Settings AI agent, and Paint AI features. This does not remove
+      the Recall optional feature bits.
 
 Scheduled task:
   Install the Windows Update-aware scheduled task:

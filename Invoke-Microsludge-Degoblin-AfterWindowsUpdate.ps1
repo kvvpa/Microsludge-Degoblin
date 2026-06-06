@@ -12,6 +12,7 @@ param(
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
     [switch]$DisableEdgeUpdates,
+    [switch]$DisableWindowsAI,
     [switch]$SkipCopilot,
     [switch]$SkipOneDrive,
     [switch]$SkipEdge,
@@ -102,6 +103,7 @@ $wrapperSwitchValues = @{
     BlockOneDrive = $BlockOneDrive.IsPresent
     RemoveOneDrive = $RemoveOneDrive.IsPresent
     DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    DisableWindowsAI = $DisableWindowsAI.IsPresent
     SkipCopilot = $SkipCopilot.IsPresent
     SkipOneDrive = $SkipOneDrive.IsPresent
     SkipEdge = $SkipEdge.IsPresent
@@ -113,6 +115,7 @@ $cleanupSwitchValues = @{
     BlockOneDrive = $BlockOneDrive.IsPresent
     RemoveOneDrive = $RemoveOneDrive.IsPresent
     DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    DisableWindowsAI = $DisableWindowsAI.IsPresent
     SkipCopilot = $SkipCopilot.IsPresent
     SkipOneDrive = $SkipOneDrive.IsPresent
     SkipEdge = $SkipEdge.IsPresent

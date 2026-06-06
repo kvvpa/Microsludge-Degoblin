@@ -22,6 +22,7 @@ Default non-targets:
   - Does not remove or block WebView2
   - Does not uninstall OneDrive unless -RemoveOneDrive is passed
   - Does not disable Edge update services/tasks unless -DisableEdgeUpdates is passed
+  - Does not disable Windows AI policies unless -DisableWindowsAI is passed
 
 Usage:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
@@ -34,6 +35,7 @@ param(
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
     [switch]$DisableEdgeUpdates,
+    [switch]$DisableWindowsAI,
     [switch]$SkipCopilot,
     [switch]$SkipOneDrive,
     [switch]$SkipEdge,
@@ -268,6 +270,7 @@ $selectedSwitches = @{
     BlockOneDrive = $BlockOneDrive.IsPresent
     RemoveOneDrive = $RemoveOneDrive.IsPresent
     DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    DisableWindowsAI = $DisableWindowsAI.IsPresent
     SkipCopilot = $SkipCopilot.IsPresent
     SkipOneDrive = $SkipOneDrive.IsPresent
     SkipEdge = $SkipEdge.IsPresent
@@ -447,6 +450,29 @@ if (-not $SkipConsumerContent) {
     Write-Log "SKIP: Microsoft consumer content cleanup disabled by parameter."
 }
 
+if ($DisableWindowsAI) {
+    Write-Log ""
+    Write-Log "WINDOWS AI"
+
+    $windowsAIDetection = Get-MicrosludgeWindowsAIDetection
+    Write-MicrosludgeWindowsAIReport -Detection $windowsAIDetection -Writer { param($Message) Write-Log $Message }
+
+    Invoke-Fix "Apply Windows AI disable policies" {
+        Set-RegDword -Path "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "AllowRecallEnablement" -Value 0
+        Set-RegDword -Path "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableAIDataAnalysis" -Value 1
+        Set-RegDword -Path "HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableAIDataAnalysis" -Value 1
+        Set-RegDword -Path "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableClickToDo" -Value 1
+        Set-RegDword -Path "HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableClickToDo" -Value 1
+        Set-RegDword -Path "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableSettingsAgent" -Value 1
+
+        Set-RegDword -Path "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableCocreator" -Value 1
+        Set-RegDword -Path "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableGenerativeFill" -Value 1
+        Set-RegDword -Path "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableImageCreator" -Value 1
+    }
+} else {
+    Write-Log "INFO: Windows AI cleanup skipped. Use -DisableWindowsAI to enable it."
+}
+
 Write-Log ""
 Write-Log "FINAL CHECKS"
 
@@ -540,6 +566,18 @@ if ($Apply) {
         Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "PublishUserActivities" -Expected 0
         Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "UploadUserActivities" -Expected 0
         Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -Expected 0
+    }
+
+    if ($DisableWindowsAI) {
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "AllowRecallEnablement" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableAIDataAnalysis" -Expected 1
+        Write-RegDwordCheck -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableAIDataAnalysis" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableClickToDo" -Expected 1
+        Write-RegDwordCheck -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableClickToDo" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" -Name "DisableSettingsAgent" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableCocreator" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableGenerativeFill" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Paint" -Name "DisableImageCreator" -Expected 1
     }
 } else {
     Write-Log "INFO: Registry policy checks skipped in dry run."

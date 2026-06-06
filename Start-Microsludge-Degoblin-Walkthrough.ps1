@@ -257,6 +257,28 @@ function Start-Wizard {
             -Explanation "Default is safer: run only when the wrapper finds Windows Update reboot evidence. Pick yes if this should be routine logon cleanup."
     }
 
+    Write-Host ""
+    Write-Host "Preflight: Windows AI detection report."
+    Write-Host "This checks for Recall, Click to Do, Settings AI agent, Paint AI policy targets,"
+    Write-Host "related packages, and related running processes before deciding whether to ask"
+    Write-Host "about Windows AI cleanup."
+    Write-Host ""
+
+    $windowsAIDetection = Get-MicrosludgeWindowsAIDetection
+    Write-MicrosludgeWindowsAIReport -Detection $windowsAIDetection
+    $windowsAITargetFound = Test-MicrosludgeWindowsAITargetFound -Detection $windowsAIDetection
+
+    $disableWindowsAI = $false
+    if ($windowsAITargetFound) {
+        $disableWindowsAI = Read-WizardYesNo `
+            -Question "Include Windows AI cleanup?" `
+            -DefaultYes $false `
+            -Explanation "Opt-in policy cleanup: disables Recall availability/snapshots, Click to Do, Settings AI agent, and Paint AI features. It does not remove Recall optional feature bits."
+    } else {
+        Write-Host ""
+        Write-Host "No Windows AI targets were found, so the Windows AI cleanup option is omitted."
+    }
+
     $includeCopilot = Read-WizardYesNo `
         -Question "Include Copilot cleanup?" `
         -DefaultYes $true `
@@ -309,6 +331,7 @@ function Start-Wizard {
         BlockOneDrive = $blockOneDrive
         RemoveOneDrive = $removeOneDrive
         DisableEdgeUpdates = $disableEdgeUpdates
+        DisableWindowsAI = $disableWindowsAI
         SkipCopilot = -not $includeCopilot
         SkipOneDrive = -not $includeOneDrive
         SkipEdge = -not $includeEdge
@@ -341,6 +364,12 @@ function Start-Wizard {
     Write-Host "  Mode: $modeName"
     if ($modeChoice -eq "3") {
         Write-Host "  Run at every logon: $alwaysApply"
+    }
+    Write-Host "  Windows AI targets found: $windowsAITargetFound"
+    if ($windowsAITargetFound) {
+        Write-Host "  Windows AI cleanup: $disableWindowsAI"
+    } else {
+        Write-Host "  Windows AI cleanup: omitted"
     }
     Write-Host "  Copilot cleanup: $includeCopilot"
     Write-Host "  OneDrive startup cleanup: $includeOneDrive"

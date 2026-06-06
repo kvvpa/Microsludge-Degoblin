@@ -9,6 +9,7 @@ function Get-MicrosludgeCleanupSwitchNames {
         "BlockOneDrive",
         "RemoveOneDrive",
         "DisableEdgeUpdates",
+        "DisableWindowsAI",
         "SkipCopilot",
         "SkipOneDrive",
         "SkipEdge",
@@ -219,7 +220,7 @@ function Get-MicrosludgeWindowsAIDetection {
 
     $relatedProcesses = @(Get-Process -ErrorAction SilentlyContinue |
         Where-Object {
-            $_.ProcessName -match "Recall|ClickToDo|Copilot|Paint|WindowsAI|Ai|AIX"
+            $_.ProcessName -match "Recall|ClickToDo|Copilot|Paint|mspaint|WindowsAI|AIX"
         } |
         Select-Object ProcessName, Id, Path |
         Sort-Object ProcessName)
@@ -289,4 +290,27 @@ function Write-MicrosludgeWindowsAIReport {
     } else {
         & $Writer "Related running processes: none found"
     }
+}
+
+function Test-MicrosludgeWindowsAITargetFound {
+    param([object]$Detection)
+
+    if ($Detection.WindowsAIRegistryPaths.Count -gt 0) {
+        return $true
+    }
+
+    if ($Detection.OptionalFeatures.Count -gt 0) {
+        return $true
+    }
+
+    if ($Detection.RelatedProcesses.Count -gt 0) {
+        return $true
+    }
+
+    $targetPackages = @($Detection.AppxPackages | Where-Object {
+        $_.Name -match "Recall|ClickToDo|Copilot|Paint" -or
+        $_.PackageFullName -match "Recall|ClickToDo|Copilot|Paint"
+    })
+
+    return ($targetPackages.Count -gt 0)
 }

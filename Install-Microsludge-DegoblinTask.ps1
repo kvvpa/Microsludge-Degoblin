@@ -10,6 +10,7 @@ param(
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
     [switch]$DisableEdgeUpdates,
+    [switch]$DisableWindowsAI,
     [switch]$SkipCopilot,
     [switch]$SkipOneDrive,
     [switch]$SkipEdge,
@@ -45,6 +46,7 @@ $switchValues = @{
     BlockOneDrive = $BlockOneDrive.IsPresent
     RemoveOneDrive = $RemoveOneDrive.IsPresent
     DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    DisableWindowsAI = $DisableWindowsAI.IsPresent
     SkipCopilot = $SkipCopilot.IsPresent
     SkipOneDrive = $SkipOneDrive.IsPresent
     SkipEdge = $SkipEdge.IsPresent

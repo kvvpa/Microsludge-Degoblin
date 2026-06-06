@@ -58,6 +58,10 @@ Wizard mode:
   to include, shows the exact command, and asks for confirmation before apply or
   scheduled-task install paths.
 
+  Before the cleanup questions, the wizard runs the Windows AI detection report.
+  If the report finds related targets, the wizard asks whether to include Windows
+  AI cleanup. If the report finds nothing, that option is omitted.
+
   Wizard run modes:
     - Dry run now: logs what would change, changes nothing
     - Apply now: performs the selected cleanup immediately
@@ -78,6 +82,15 @@ Windows AI detection:
 
   This is detection-only. It does not change registry values, packages, features,
   services, tasks, or processes.
+
+Windows AI cleanup:
+  This is opt-in. When included, Microsludge Degoblin sets policy values for:
+    - Recall availability and snapshot saving
+    - Click to Do
+    - Settings AI agent
+    - Paint AI features: Cocreator, Generative Fill, Image Creator
+
+  It does not remove the Recall optional feature bits.
 
 Manual apply:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
