@@ -48,7 +48,20 @@ Admin requirement:
   are not elevated.
 
 Recommended first run:
+  GUI:
+  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
+
+  Guided wizard:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
+
+GUI mode:
+  The GUI keeps the same engine scripts underneath. It can:
+    - Run the Windows AI detection report
+    - Enable Windows AI cleanup only when the report finds targets
+    - Dry run selected cleanup
+    - Apply selected cleanup
+    - Install or remove the scheduled task
+    - Open the logs folder
 
 Quick menu:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1

@@ -29,25 +29,32 @@ Usage:
      Admin is required for dry run, apply, the wizard, and scheduled-task install.
      The launcher and cleanup scripts stop if they are not elevated.
 
-  2. Guided wizard:
+  2. Graphical launcher:
+       powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
+
+     The GUI can run the Windows AI report, enable/omit the Windows AI option
+     from that report, dry run, apply, install/remove the scheduled task, and
+     open logs.
+
+  3. Guided wizard:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
 
-  3. Quick walkthrough menu:
+  4. Quick walkthrough menu:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
 
-  4. Dry run first:
+  5. Dry run first:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
 
-  5. Test for Windows AI targets:
+  6. Test for Windows AI targets:
        powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
 
-  6. Apply default Microsoft cleanup:
+  7. Apply default Microsoft cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
 
-  7. Apply stronger cleanup:
+  8. Apply stronger cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 
-  8. Uninstall OneDrive too:
+  9. Uninstall OneDrive too:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
 
 Windows AI detection:
@@ -119,6 +126,10 @@ Logs:
 
   Apply runs and automated wrapper runs prune old logs:
        keep the 20 most recent logs and remove logs older than 90 days
+
+Assets:
+  GUI art is stored in:
+       .\Assets
 
 Walkthrough:
   See:
