@@ -98,7 +98,7 @@ function Get-WindowsUpdateRebootEvidence {
     $pendingRebootKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
     try {
         if (Test-Path -LiteralPath $pendingRebootKey) {
-            $evidence.Add("Windows Update pending-reboot registry key present: $pendingRebootKey")
+            $evidence.Add("Windows Update pending-reboot key present (WU has queued updates requiring a reboot): $pendingRebootKey")
         }
     } catch {
         Write-AutoLog "Windows Update pending-reboot registry key unavailable: $($_.Exception.Message)"
