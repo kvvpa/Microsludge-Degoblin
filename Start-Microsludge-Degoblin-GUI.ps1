@@ -188,6 +188,8 @@ $xaml = @'
 
             <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12">
                 <StackPanel>
+                    <Button x:Name="GuideButton" Content="Guide me through this" Style="{StaticResource AccentButton}" HorizontalAlignment="Stretch" Margin="0,0,0,10" ToolTip="Walk through the options one at a time."/>
+
                     <TextBlock Text="Targets" Style="{StaticResource GroupTitle}"/>
                     <CheckBox x:Name="CheckCopilot" Content="Copilot" IsChecked="True"/>
                     <CheckBox x:Name="CheckOneDrive" Content="OneDrive startup" IsChecked="True"/>
@@ -263,6 +265,7 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 $HeaderImage = $window.FindName("HeaderImage")
 $AdminStatusText = $window.FindName("AdminStatusText")
 $ElevateButton = $window.FindName("ElevateButton")
+$GuideButton = $window.FindName("GuideButton")
 $CheckCopilot = $window.FindName("CheckCopilot")
 $CheckOneDrive = $window.FindName("CheckOneDrive")
 $CheckEdge = $window.FindName("CheckEdge")
@@ -374,6 +377,7 @@ function Update-GuiState {
     }
 
     $OpenLogsButton.IsEnabled = -not $script:Busy
+    $GuideButton.IsEnabled = -not $script:Busy
     $ElevateButton.IsEnabled = (-not $isAdmin -and -not $script:Busy)
     $CheckWindowsAI.IsEnabled = ($isAdmin -and -not $script:Busy -and $script:WindowsAITargetFound)
 }
@@ -451,6 +455,284 @@ function Invoke-GuiScript {
     }
 }
 
+function Invoke-GuiWindowsAIReport {
+    if (-not (Assert-GuiAdmin)) {
+        return $false
+    }
+
+    Add-GuiLog ""
+    Add-GuiLog "Running Windows AI detection report."
+    Set-GuiBusy $true
+    $success = $false
+    try {
+        $reportLines = New-Object System.Collections.Generic.List[string]
+        $detection = Get-MicrosludgeWindowsAIDetection
+        Write-MicrosludgeWindowsAIReport -Detection $detection -Writer {
+            param([string]$Message)
+            $reportLines.Add($Message)
+        }
+
+        foreach ($line in $reportLines) {
+            Add-GuiLog $line
+        }
+
+        $script:WindowsAITargetFound = Test-MicrosludgeWindowsAITargetFound -Detection $detection
+        if ($script:WindowsAITargetFound) {
+            $CheckWindowsAI.Content = "Windows AI cleanup"
+            $CheckWindowsAI.ToolTip = "Available. The report found Windows AI targets."
+            Add-GuiLog "Windows AI cleanup option enabled."
+        } else {
+            $CheckWindowsAI.IsChecked = $false
+            $CheckWindowsAI.Content = "Windows AI cleanup"
+            $CheckWindowsAI.ToolTip = "Omitted. The report did not find Windows AI targets."
+            Add-GuiLog "Windows AI cleanup option omitted because no targets were found."
+        }
+
+        $success = $true
+    } catch {
+        Add-GuiLog "ERROR: $($_.Exception.Message)"
+        Show-GuiMessage -Message $_.Exception.Message -Icon Error
+    } finally {
+        Set-GuiBusy $false
+        Update-GuiSummary
+    }
+
+    return $success
+}
+
+function Start-GuiWizard {
+    if (-not $script:WindowsAITargetFound -and (Test-MicrosludgeIsAdmin)) {
+        $result = [System.Windows.MessageBox]::Show(
+            $window,
+            "Run the Windows AI detection report before the guide starts? It changes nothing and lets the guide show or omit the Windows AI option correctly.",
+            "Run AI report first?",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Question
+        )
+
+        if ($result -eq [System.Windows.MessageBoxResult]::Yes) {
+            $null = Invoke-GuiWindowsAIReport
+        }
+    }
+
+    $steps = New-Object System.Collections.Generic.List[object]
+    $steps.Add([pscustomobject]@{
+        Title = "Start here"
+        Body = "This guide only sets the checkboxes on the main screen. It does not make changes by itself. After the guide, run Dry run first so you can see what would happen before using Apply."
+        ChoiceText = $null
+        Control = $null
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Copilot"
+        Body = "This removes Copilot Appx packages where possible and sets policies that turn Copilot off for the current user and the machine. Leave this on if you do not use Copilot."
+        ChoiceText = "Include Copilot cleanup"
+        Control = $CheckCopilot
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "OneDrive startup"
+        Body = "This stops OneDrive from popping back into startup and kills the running OneDrive process during cleanup. It does not uninstall OneDrive and does not block file sync by itself."
+        ChoiceText = "Include OneDrive startup cleanup"
+        Control = $CheckOneDrive
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Edge background behavior"
+        Body = "This sets policies for Edge background mode, startup boost, first-run experience, sidebar behavior, and removes GameAssist. It does not remove Edge itself."
+        ChoiceText = "Include Edge background cleanup"
+        Control = $CheckEdge
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "New Outlook"
+        Body = "This removes the new Microsoft.OutlookForWindows app package where possible. It does not target classic Outlook from Microsoft Office."
+        ChoiceText = "Include New Outlook cleanup"
+        Control = $CheckOutlook
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Ads, suggestions, and widgets"
+        Body = "This turns off Microsoft consumer-content suggestions, ad ID behavior, tailored experiences, activity upload, widgets/news policy, and similar Windows nags."
+        ChoiceText = "Include ads, suggestions, and widgets cleanup"
+        Control = $CheckConsumerContent
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Block OneDrive sync"
+        Body = "This is stronger than startup cleanup. It sets the machine policy that blocks OneDrive file sync. Leave this off if the person uses OneDrive."
+        ChoiceText = "Block OneDrive file sync"
+        Control = $CheckBlockOneDrive
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Uninstall OneDrive"
+        Body = "This tries to run the local OneDrive uninstaller. Pick this only when OneDrive should be removed, not merely quieted."
+        ChoiceText = "Uninstall OneDrive"
+        Control = $CheckRemoveOneDrive
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Disable Edge updates"
+        Body = "This disables Microsoft Edge update tasks and services. It is opt-in because it can also affect WebView2 update freshness."
+        ChoiceText = "Disable Edge update services and tasks"
+        Control = $CheckDisableEdgeUpdates
+    })
+
+    if ($script:WindowsAITargetFound) {
+        $steps.Add([pscustomobject]@{
+            Title = "Windows AI cleanup"
+            Body = "The report found Windows AI related targets. This sets policies for Recall availability and snapshots, Click to Do, Settings AI agent, and Paint AI features. It does not remove Recall feature bits."
+            ChoiceText = "Include Windows AI cleanup"
+            Control = $CheckWindowsAI
+        })
+    } else {
+        $steps.Add([pscustomobject]@{
+            Title = "Windows AI cleanup"
+            Body = "This option stays off until the AI report finds related targets. Run AI report from the main window if you want the tool to check Recall, Click to Do, Settings AI agent, Paint AI policy targets, packages, and related processes."
+            ChoiceText = $null
+            Control = $null
+        })
+    }
+
+    $steps.Add([pscustomobject]@{
+        Title = "Scheduled task behavior"
+        Body = "This only matters when you click Install task. Off means the task runs after logon only when Windows Update evidence is found. On means it runs at every logon."
+        ChoiceText = "Run the scheduled task at every logon"
+        Control = $CheckAlwaysApply
+    })
+    $steps.Add([pscustomobject]@{
+        Title = "Review"
+        Body = "Selections are now set on the main screen. Best next step: click Dry run. If the log looks right, use Apply for a one-time cleanup or Install task for future cleanup."
+        ChoiceText = $null
+        Control = $null
+    })
+
+    $wizardXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Microsludge Degoblin Guided Setup"
+        Width="620"
+        Height="430"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="#101416"
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Padding" Value="12,3"/>
+            <Setter Property="Background" Value="#223036"/>
+            <Setter Property="Foreground" Value="#F4F7F2"/>
+            <Setter Property="BorderBrush" Value="#4F626A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock x:Name="WizardStepText" Foreground="#9AA9A0" FontSize="12"/>
+            <TextBlock x:Name="WizardTitleText" Foreground="#F4F7F2" FontSize="22" FontWeight="SemiBold" Margin="0,4,0,12"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="#151B1E" BorderBrush="#344147" BorderThickness="1" CornerRadius="6" Padding="16">
+            <StackPanel>
+                <TextBlock x:Name="WizardBodyText" Foreground="#EAF1EC" FontSize="14" TextWrapping="Wrap" LineHeight="22"/>
+                <CheckBox x:Name="WizardChoiceCheck" Foreground="#B7F7C1" FontSize="14" FontWeight="SemiBold" Margin="0,22,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+            <Button x:Name="WizardCancelButton" Content="Cancel" Width="86" DockPanel.Dock="Left"/>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button x:Name="WizardBackButton" Content="Back" Width="82"/>
+                <Button x:Name="WizardNextButton" Content="Next" Width="82" Background="#315D38" BorderBrush="#78A868"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
+'@
+
+    $wizardXml = [xml]$wizardXaml
+    $wizardReader = New-Object System.Xml.XmlNodeReader $wizardXml
+    $wizardWindow = [Windows.Markup.XamlReader]::Load($wizardReader)
+    $wizardWindow.Owner = $window
+
+    $WizardStepText = $wizardWindow.FindName("WizardStepText")
+    $WizardTitleText = $wizardWindow.FindName("WizardTitleText")
+    $WizardBodyText = $wizardWindow.FindName("WizardBodyText")
+    $WizardChoiceCheck = $wizardWindow.FindName("WizardChoiceCheck")
+    $WizardCancelButton = $wizardWindow.FindName("WizardCancelButton")
+    $WizardBackButton = $wizardWindow.FindName("WizardBackButton")
+    $WizardNextButton = $wizardWindow.FindName("WizardNextButton")
+
+    $state = @{ Index = 0; Completed = $false }
+
+    $saveStep = {
+        $step = $steps[[int]$state["Index"]]
+        if ($step.Control -and $WizardChoiceCheck.Visibility -eq [System.Windows.Visibility]::Visible) {
+            $step.Control.IsChecked = [bool]$WizardChoiceCheck.IsChecked
+            Update-GuiSummary
+        }
+    }
+
+    $showStep = {
+        $index = [int]$state["Index"]
+        $step = $steps[$index]
+        $WizardStepText.Text = "Step $($index + 1) of $($steps.Count)"
+        $WizardTitleText.Text = $step.Title
+        $WizardBodyText.Text = $step.Body
+
+        if ($step.Control) {
+            $WizardChoiceCheck.Visibility = [System.Windows.Visibility]::Visible
+            $WizardChoiceCheck.Content = $step.ChoiceText
+            $WizardChoiceCheck.IsChecked = [bool]$step.Control.IsChecked
+        } else {
+            $WizardChoiceCheck.Visibility = [System.Windows.Visibility]::Collapsed
+            $WizardChoiceCheck.IsChecked = $false
+            $WizardChoiceCheck.Content = ""
+        }
+
+        $WizardBackButton.IsEnabled = $index -gt 0
+        if ($index -eq ($steps.Count - 1)) {
+            $WizardNextButton.Content = "Done"
+        } else {
+            $WizardNextButton.Content = "Next"
+        }
+    }
+
+    $WizardCancelButton.Add_Click({
+        $wizardWindow.Close()
+    })
+
+    $WizardBackButton.Add_Click({
+        & $saveStep
+        if ([int]$state["Index"] -gt 0) {
+            $state["Index"] = [int]$state["Index"] - 1
+            & $showStep
+        }
+    })
+
+    $WizardNextButton.Add_Click({
+        & $saveStep
+        if ([int]$state["Index"] -ge ($steps.Count - 1)) {
+            $state["Completed"] = $true
+            $wizardWindow.Close()
+            return
+        }
+
+        $state["Index"] = [int]$state["Index"] + 1
+        & $showStep
+    })
+
+    & $showStep
+    $wizardWindow.ShowDialog() | Out-Null
+
+    if ([bool]$state["Completed"]) {
+        Add-GuiLog "Guided setup complete. Click Dry run to preview the selected cleanup."
+        Update-GuiSummary
+    }
+}
+
 $optionControls = @(
     $CheckCopilot,
     $CheckOneDrive,
@@ -482,44 +764,12 @@ $ElevateButton.Add_Click({
     $window.Close()
 })
 
+$GuideButton.Add_Click({
+    Start-GuiWizard
+})
+
 $RunReportButton.Add_Click({
-    if (-not (Assert-GuiAdmin)) {
-        return
-    }
-
-    Add-GuiLog ""
-    Add-GuiLog "Running Windows AI detection report."
-    Set-GuiBusy $true
-    try {
-        $reportLines = New-Object System.Collections.Generic.List[string]
-        $detection = Get-MicrosludgeWindowsAIDetection
-        Write-MicrosludgeWindowsAIReport -Detection $detection -Writer {
-            param([string]$Message)
-            $reportLines.Add($Message)
-        }
-
-        foreach ($line in $reportLines) {
-            Add-GuiLog $line
-        }
-
-        $script:WindowsAITargetFound = Test-MicrosludgeWindowsAITargetFound -Detection $detection
-        if ($script:WindowsAITargetFound) {
-            $CheckWindowsAI.Content = "Windows AI cleanup"
-            $CheckWindowsAI.ToolTip = "Available. The report found Windows AI targets."
-            Add-GuiLog "Windows AI cleanup option enabled."
-        } else {
-            $CheckWindowsAI.IsChecked = $false
-            $CheckWindowsAI.Content = "Windows AI cleanup"
-            $CheckWindowsAI.ToolTip = "Omitted. The report did not find Windows AI targets."
-            Add-GuiLog "Windows AI cleanup option omitted because no targets were found."
-        }
-    } catch {
-        Add-GuiLog "ERROR: $($_.Exception.Message)"
-        Show-GuiMessage -Message $_.Exception.Message -Icon Error
-    } finally {
-        Set-GuiBusy $false
-        Update-GuiSummary
-    }
+    $null = Invoke-GuiWindowsAIReport
 })
 
 $DryRunButton.Add_Click({

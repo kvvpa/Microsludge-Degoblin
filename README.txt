@@ -32,9 +32,9 @@ Usage:
   2. Graphical launcher:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
 
-     The GUI can run the Windows AI report, enable/omit the Windows AI option
-     from that report, dry run, apply, install/remove the scheduled task, and
-     open logs.
+     The GUI includes a guided setup walkthrough, can run the Windows AI report,
+     enable/omit the Windows AI option from that report, dry run, apply,
+     install/remove the scheduled task, and open logs.
 
   3. Guided wizard:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard

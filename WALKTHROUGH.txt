@@ -43,6 +43,7 @@ Recommended first run:
 
 GUI mode:
   The GUI keeps the same engine scripts underneath. It can:
+    - Walk through the options one at a time with plain-language explanations
     - Run the Windows AI detection report
     - Enable Windows AI cleanup only when the report finds targets
     - Dry run selected cleanup
