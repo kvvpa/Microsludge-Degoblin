@@ -65,7 +65,7 @@ Wizard mode:
   Wizard run modes:
     - Dry run now: logs what would change, changes nothing
     - Apply now: performs the selected cleanup immediately
-    - Install post-update task: saves the selected options for future Windows Update reboots
+    - Install post-update task: saves the selected options for runs when Windows Update evidence is found
     - Uninstall post-update task: removes the saved automatic cleanup task
     - Test for Windows AI targets: report only, changes nothing
 
@@ -180,12 +180,13 @@ Scheduled task walkthrough:
   What the scheduled task does:
     - Runs at user logon
     - Waits two minutes
-    - Checks whether the most recent reboot appears tied to Windows Update by default
-    - Runs Microsludge-Degoblin.ps1 -Apply when Windows Update evidence is found
+    - Checks for Windows Update evidence by default
+    - Uses restart/update event logs plus the Windows Update pending-reboot registry key
+    - Runs Microsludge-Degoblin.ps1 -Apply when that evidence is found
     - Skips the Windows Update evidence gate when installed with -AlwaysApply
 
   Log pruning:
-    - Automated wrapper runs keep the 20 most recent logs
+    - Apply runs and automated wrapper runs keep the 20 most recent logs
     - Logs older than 90 days are removed
 
 What it intentionally does not do:

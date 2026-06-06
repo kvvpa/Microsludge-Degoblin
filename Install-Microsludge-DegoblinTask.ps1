@@ -94,7 +94,7 @@ Register-ScheduledTask `
     -Trigger $trigger `
     -Settings $settings `
     -Principal $principal `
-    -Description "Runs Microsludge Degoblin after logon only when the last reboot appears tied to Windows Update. Options: $optionSummary." `
+    -Description "Runs Microsludge Degoblin after logon only when Windows Update evidence is found. Options: $optionSummary." `
     -Force | Out-Null
 
 Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath |

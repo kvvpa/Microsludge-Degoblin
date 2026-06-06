@@ -1,5 +1,5 @@
 <#
-Runs Microsludge-Degoblin.ps1 only when the last reboot appears tied to Windows Update.
+Runs Microsludge-Degoblin.ps1 only when Windows Update evidence is found.
 
 This wrapper is meant for Task Scheduler. It logs either the Windows Update evidence it
 found or the reason it skipped the run. Use -AlwaysApply to bypass the Windows
@@ -95,10 +95,19 @@ function Get-WindowsUpdateRebootEvidence {
         Write-AutoLog "Windows Update operational log unavailable: $($_.Exception.Message)"
     }
 
+    $pendingRebootKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+    try {
+        if (Test-Path -LiteralPath $pendingRebootKey) {
+            $evidence.Add("Windows Update pending-reboot registry key present: $pendingRebootKey")
+        }
+    } catch {
+        Write-AutoLog "Windows Update pending-reboot registry key unavailable: $($_.Exception.Message)"
+    }
+
     return $evidence | Select-Object -First 8
 }
 
-$wrapperSwitchValues = @{
+$switchValues = @{
     AlwaysApply = $AlwaysApply.IsPresent
     BlockOneDrive = $BlockOneDrive.IsPresent
     RemoveOneDrive = $RemoveOneDrive.IsPresent
@@ -111,22 +120,10 @@ $wrapperSwitchValues = @{
     SkipConsumerContent = $SkipConsumerContent.IsPresent
 }
 
-$cleanupSwitchValues = @{
-    BlockOneDrive = $BlockOneDrive.IsPresent
-    RemoveOneDrive = $RemoveOneDrive.IsPresent
-    DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
-    DisableWindowsAI = $DisableWindowsAI.IsPresent
-    SkipCopilot = $SkipCopilot.IsPresent
-    SkipOneDrive = $SkipOneDrive.IsPresent
-    SkipEdge = $SkipEdge.IsPresent
-    SkipOutlook = $SkipOutlook.IsPresent
-    SkipConsumerContent = $SkipConsumerContent.IsPresent
-}
-
-$optionSummary = Get-MicrosludgeOptionSummary -Values $wrapperSwitchValues -Names (Get-MicrosludgeWrapperSwitchNames)
+$optionSummary = Get-MicrosludgeOptionSummary -Values $switchValues -Names (Get-MicrosludgeWrapperSwitchNames)
 
 Write-AutoLog "Starting automated Microsludge Degoblin check."
-Write-AutoLog "Mode: $(if ($TestOnly) { 'TEST ONLY' } elseif ($AlwaysApply) { 'APPLY AT EVERY SCHEDULED LAUNCH' } else { 'APPLY IF WINDOWS UPDATE REBOOT IS DETECTED' })"
+Write-AutoLog "Mode: $(if ($TestOnly) { 'TEST ONLY' } elseif ($AlwaysApply) { 'APPLY AT EVERY SCHEDULED LAUNCH' } else { 'APPLY IF WINDOWS UPDATE EVIDENCE IS FOUND' })"
 Write-AutoLog "Options: $optionSummary"
 Write-AutoLog "Wrapper log: $logPath"
 
@@ -146,15 +143,15 @@ $lastBootTime = Get-LastBootTime
 Write-AutoLog "Last boot time: $lastBootTime"
 
 if ($AlwaysApply) {
-    Write-AutoLog "AlwaysApply requested. Skipping Windows Update reboot evidence gate."
+    Write-AutoLog "AlwaysApply requested. Skipping Windows Update evidence gate."
 } else {
     $evidence = @(Get-WindowsUpdateRebootEvidence -LastBootTime $lastBootTime)
     if ($evidence.Count -eq 0) {
-        Write-AutoLog "No Windows Update reboot evidence found. Skipping cleanup script."
+        Write-AutoLog "No Windows Update evidence found. Skipping cleanup script."
         exit 0
     }
 
-    Write-AutoLog "Windows Update reboot evidence found:"
+    Write-AutoLog "Windows Update evidence found:"
     foreach ($item in $evidence) {
         Write-AutoLog "  $item"
     }
@@ -174,7 +171,7 @@ $arguments = @(
     "-Apply"
 )
 
-$arguments += Get-MicrosludgeSwitchArgumentList -Values $cleanupSwitchValues -Names (Get-MicrosludgeCleanupSwitchNames)
+$arguments += Get-MicrosludgeSwitchArgumentList -Values $switchValues -Names (Get-MicrosludgeCleanupSwitchNames)
 
 Write-AutoLog "Running Microsludge-Degoblin.ps1 -Apply with options: $optionSummary"
 & powershell.exe @arguments *>&1 |

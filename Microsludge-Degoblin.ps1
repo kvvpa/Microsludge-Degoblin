@@ -587,6 +587,13 @@ Write-Log ""
 if (-not $Apply) {
     Write-Log "Dry run complete. Re-run with -Apply to make changes."
 } else {
+    Remove-MicrosludgeOldLogs `
+        -LogRoot $logRoot `
+        -KeepMostRecent 20 `
+        -OlderThanDays 90 `
+        -ExcludePath $logPath `
+        -Logger { param($Message) Write-Log $Message }
+
     Write-Log "Apply run complete. Reboot recommended."
 }
 

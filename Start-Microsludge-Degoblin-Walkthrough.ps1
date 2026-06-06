@@ -193,7 +193,7 @@ function Start-Wizard {
     Write-Host "Run modes:"
     Write-Host "  1. Dry run now: logs what would change, changes nothing."
     Write-Host "  2. Apply now: performs the selected cleanup immediately."
-    Write-Host "  3. Install post-update task: saves these choices for automatic cleanup after Windows Update reboots."
+    Write-Host "  3. Install post-update task: saves these choices for automatic cleanup when Windows Update evidence is found."
     Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task."
     Write-Host "  5. Test for Windows AI targets: report only, changes nothing."
     Write-Host "  Q. Quit"
@@ -252,9 +252,9 @@ function Start-Wizard {
     $alwaysApply = $false
     if ($modeChoice -eq "3") {
         $alwaysApply = Read-WizardYesNo `
-            -Question "Run the scheduled task at every logon instead of only after Windows Update reboots?" `
+            -Question "Run the scheduled task at every logon instead of only when Windows Update evidence is found?" `
             -DefaultYes $false `
-            -Explanation "Default is safer: run only when the wrapper finds Windows Update reboot evidence. Pick yes if this should be routine logon cleanup."
+            -Explanation "Default is safer: run only when the wrapper finds Windows Update evidence. Pick yes if this should be routine logon cleanup."
     }
 
     Write-Host ""

@@ -78,7 +78,7 @@ Skip switches:
 Optional stronger switches:
   -AlwaysApply
       Scheduled-task installer/wrapper option. Runs cleanup at every scheduled
-      logon launch instead of only after Windows Update reboot evidence.
+      logon launch instead of only when Windows Update evidence is found.
 
   -BlockOneDrive
       Sets the Windows policy that blocks OneDrive file sync.
@@ -109,14 +109,15 @@ Scheduled task:
        powershell -ExecutionPolicy Bypass -File .\Uninstall-Microsludge-DegoblinTask.ps1
 
   By default, the task runs at logon, waits two minutes, and only applies cleanup
-  when the last reboot appears tied to Windows Update activity. With -AlwaysApply,
+  when Windows Update evidence is found. Evidence can come from restart/update
+  event logs or the Windows Update pending-reboot registry key. With -AlwaysApply,
   it skips that Windows Update evidence gate.
 
 Logs:
   Logs are written to:
        .\Logs
 
-  Automated wrapper runs prune old logs:
+  Apply runs and automated wrapper runs prune old logs:
        keep the 20 most recent logs and remove logs older than 90 days
 
 Walkthrough:

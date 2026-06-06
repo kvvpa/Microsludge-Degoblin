@@ -220,7 +220,7 @@ function Get-MicrosludgeWindowsAIDetection {
 
     $relatedProcesses = @(Get-Process -ErrorAction SilentlyContinue |
         Where-Object {
-            $_.ProcessName -match "Recall|ClickToDo|Copilot|Paint|mspaint|WindowsAI|AIX"
+            $_.ProcessName -match "Cocreator|Recall|ClickToDo|WindowsAI"
         } |
         Select-Object ProcessName, Id, Path |
         Sort-Object ProcessName)
