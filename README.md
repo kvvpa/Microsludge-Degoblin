@@ -32,9 +32,19 @@ It has both a PowerShell console walkthrough and a GUI with guided setup, so use
 
 ## Usage
 
-Open PowerShell as Administrator. Admin is required for dry run, apply, the wizard, and scheduled-task install. The launcher and cleanup scripts stop if they are not elevated.
+Admin is required for detection reports, dry run, apply, the console wizard, and scheduled-task install. The GUI can open normally and relaunch itself elevated; console paths stop if they are not elevated.
 
 Graphical launcher:
+
+Double-click:
+
+```text
+Start-Microsludge-Degoblin-GUI.vbs
+```
+
+The `.vbs` launcher starts the GUI without leaving a PowerShell console window open.
+
+PowerShell launch, useful for debugging:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1

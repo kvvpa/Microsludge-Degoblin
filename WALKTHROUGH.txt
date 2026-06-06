@@ -30,12 +30,15 @@ What "apply" means:
   scheduled task changes, service changes, Appx removals, and registry policy edits.
 
 Admin requirement:
-  Run the wizard, dry run, apply, and scheduled-task installer from an
-  Administrator PowerShell window. The launcher and cleanup scripts stop if they
-  are not elevated.
+  Admin is required for detection reports, dry run, apply, the console wizard,
+  and scheduled-task installer. The GUI can open normally and relaunch itself
+  elevated; console paths stop if they are not elevated.
 
 Recommended first run:
   GUI:
+  Double-click Start-Microsludge-Degoblin-GUI.vbs
+
+  GUI from PowerShell, useful for debugging:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
 
   Guided wizard:
