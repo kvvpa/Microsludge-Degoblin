@@ -27,19 +27,22 @@ Default non-targets:
 Usage:
   1. Open PowerShell as Administrator.
 
-  2. Guided walkthrough:
+  2. Guided wizard:
+       powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
+
+  3. Quick walkthrough menu:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
 
-  3. Dry run first:
+  4. Dry run first:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
 
-  4. Apply default Microsoft cleanup:
+  5. Apply default Microsoft cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
 
-  5. Apply stronger cleanup:
+  6. Apply stronger cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 
-  6. Uninstall OneDrive too:
+  7. Uninstall OneDrive too:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
 
 Skip switches:
@@ -48,6 +51,8 @@ Skip switches:
   -SkipEdge
   -SkipOutlook
   -SkipConsumerContent
+
+  These work with the main cleanup script and with the scheduled-task installer.
 
 Optional stronger switches:
   -BlockOneDrive

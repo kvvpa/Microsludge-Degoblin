@@ -5,6 +5,10 @@ This launcher does not hide what it runs. It shows the selected command, asks fo
 confirmation before apply/removal paths, and then delegates to the real scripts.
 #>
 
+param(
+    [switch]$Wizard
+)
+
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -99,6 +103,235 @@ function Show-Banner {
     }
 }
 
+function Read-WizardChoice {
+    param(
+        [string]$Prompt,
+        [string[]]$Allowed
+    )
+
+    while ($true) {
+        $answer = Read-Host $Prompt
+        if ($null -eq $answer) {
+            $answer = ""
+        }
+
+        $choice = $answer.Trim().ToUpperInvariant()
+        if ($Allowed -contains $choice) {
+            return $choice
+        }
+
+        Write-Host "Pick one of: $($Allowed -join ', ')."
+    }
+}
+
+function Read-WizardYesNo {
+    param(
+        [string]$Question,
+        [bool]$DefaultYes,
+        [string]$Explanation
+    )
+
+    Write-Host ""
+    if ($Explanation) {
+        Write-Host $Explanation
+    }
+
+    $suffix = if ($DefaultYes) { "[Y/n]" } else { "[y/N]" }
+    while ($true) {
+        $answer = Read-Host "$Question $suffix"
+        if ($null -eq $answer) {
+            $answer = ""
+        }
+
+        $normalized = $answer.Trim().ToLowerInvariant()
+        if ($normalized -eq "") {
+            return $DefaultYes
+        }
+
+        if (@("y", "yes") -contains $normalized) {
+            return $true
+        }
+
+        if (@("n", "no") -contains $normalized) {
+            return $false
+        }
+
+        Write-Host "Answer yes or no."
+    }
+}
+
+function Format-CommandLine {
+    param(
+        [string]$ScriptPath,
+        [string[]]$ExtraArgs
+    )
+
+    $parts = @(
+        "powershell",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        ('"{0}"' -f $ScriptPath)
+    ) + $ExtraArgs
+
+    return $parts -join " "
+}
+
+function Start-Wizard {
+    Clear-Host
+    Show-Banner
+    Write-Host ""
+    Write-Host "Microsludge Degoblin Wizard"
+    Write-Host ""
+    Write-Host "This will ask what to include, explain the stronger options, show the exact command,"
+    Write-Host "and ask for confirmation before doing anything that changes the machine."
+    Write-Host ""
+    Write-Host "Run modes:"
+    Write-Host "  1. Dry run now: logs what would change, changes nothing."
+    Write-Host "  2. Apply now: performs the selected cleanup immediately."
+    Write-Host "  3. Install post-update task: saves these choices for automatic cleanup after Windows Update reboots."
+    Write-Host "  Q. Quit"
+    Write-Host ""
+
+    $modeChoice = Read-WizardChoice -Prompt "Choose run mode" -Allowed @("1", "2", "3", "Q")
+    if ($modeChoice -eq "Q") {
+        Write-Host "Wizard cancelled."
+        return
+    }
+
+    $modeName = switch ($modeChoice) {
+        "1" { "Dry run now" }
+        "2" { "Apply now" }
+        "3" { "Install post-update task" }
+    }
+
+    Write-Host ""
+    Write-Host "Step 1: choose cleanup targets."
+
+    $includeCopilot = Read-WizardYesNo `
+        -Question "Include Copilot cleanup?" `
+        -DefaultYes $true `
+        -Explanation "Removes installed/provisioned Copilot packages and sets Windows Copilot off policies."
+
+    $includeOneDrive = Read-WizardYesNo `
+        -Question "Include OneDrive startup cleanup?" `
+        -DefaultYes $true `
+        -Explanation "Stops OneDrive if running, removes OneDrive startup entries, and disables OneDrive scheduled tasks. This does not uninstall OneDrive by itself."
+
+    $blockOneDrive = $false
+    $removeOneDrive = $false
+    if ($includeOneDrive) {
+        $blockOneDrive = Read-WizardYesNo `
+            -Question "Block OneDrive file sync by policy?" `
+            -DefaultYes $false `
+            -Explanation "Stronger option: sets the machine policy that blocks OneDrive file sync. Pick yes only if OneDrive should stay off."
+
+        $removeOneDrive = Read-WizardYesNo `
+            -Question "Uninstall OneDrive when the local uninstaller is found?" `
+            -DefaultYes $false `
+            -Explanation "Strongest OneDrive option: runs OneDriveSetup.exe /uninstall. Startup cleanup is usually enough if you only want it out of the way."
+    }
+
+    $includeEdge = Read-WizardYesNo `
+        -Question "Include Edge background cleanup?" `
+        -DefaultYes $true `
+        -Explanation "Removes Edge GameAssist, blocks Edge startup boost/background mode/sidebar behavior by policy, and removes Edge background autolaunch entries. It does not remove Edge itself."
+
+    $disableEdgeUpdates = $false
+    if ($includeEdge) {
+        $disableEdgeUpdates = Read-WizardYesNo `
+            -Question "Disable Edge update services and scheduled tasks?" `
+            -DefaultYes $false `
+            -Explanation "Stronger option: disables MicrosoftEdgeUpdate tasks plus edgeupdate and edgeupdatem services. This can affect Edge and WebView2 update freshness."
+    }
+
+    $includeOutlook = Read-WizardYesNo `
+        -Question "Include new Outlook cleanup?" `
+        -DefaultYes $true `
+        -Explanation "Removes Microsoft.OutlookForWindows installed and provisioned Appx packages."
+
+    $includeConsumerContent = Read-WizardYesNo `
+        -Question "Include Microsoft ads, suggestions, widgets, and SoftLanding cleanup?" `
+        -DefaultYes $true `
+        -Explanation "Turns off consumer-content suggestions, advertising ID, tailored experiences, widgets/news policy, activity upload, and SoftLanding-style tasks."
+
+    $extraArgs = @()
+    if ($modeChoice -eq "2") {
+        $extraArgs += "-Apply"
+    }
+    if ($blockOneDrive) {
+        $extraArgs += "-BlockOneDrive"
+    }
+    if ($removeOneDrive) {
+        $extraArgs += "-RemoveOneDrive"
+    }
+    if ($disableEdgeUpdates) {
+        $extraArgs += "-DisableEdgeUpdates"
+    }
+    if (-not $includeCopilot) {
+        $extraArgs += "-SkipCopilot"
+    }
+    if (-not $includeOneDrive) {
+        $extraArgs += "-SkipOneDrive"
+    }
+    if (-not $includeEdge) {
+        $extraArgs += "-SkipEdge"
+    }
+    if (-not $includeOutlook) {
+        $extraArgs += "-SkipOutlook"
+    }
+    if (-not $includeConsumerContent) {
+        $extraArgs += "-SkipConsumerContent"
+    }
+
+    $scriptPath = if ($modeChoice -eq "3") { $installerScript } else { $mainScript }
+    $confirmationWord = $null
+    if ($modeChoice -eq "2") {
+        $confirmationWord = if ($removeOneDrive) { "REMOVE" } else { "APPLY" }
+    } elseif ($modeChoice -eq "3") {
+        $confirmationWord = "INSTALL"
+    }
+
+    Write-Host ""
+    Write-Host "Step 2: review your choices."
+    Write-Host "  Mode: $modeName"
+    Write-Host "  Copilot cleanup: $includeCopilot"
+    Write-Host "  OneDrive startup cleanup: $includeOneDrive"
+    Write-Host "  Block OneDrive sync: $blockOneDrive"
+    Write-Host "  Uninstall OneDrive: $removeOneDrive"
+    Write-Host "  Edge background cleanup: $includeEdge"
+    Write-Host "  Disable Edge updates: $disableEdgeUpdates"
+    Write-Host "  New Outlook cleanup: $includeOutlook"
+    Write-Host "  Ads/suggestions/widgets cleanup: $includeConsumerContent"
+    Write-Host ""
+    Write-Host "Command:"
+    Write-Host (Format-CommandLine -ScriptPath $scriptPath -ExtraArgs $extraArgs)
+
+    if ($modeChoice -eq "1") {
+        $runDryRun = Read-WizardYesNo `
+            -Question "Run this dry run now?" `
+            -DefaultYes $true `
+            -Explanation "Dry run mode only reports what would change."
+
+        if (-not $runDryRun) {
+            Write-Host "Dry run skipped."
+            return
+        }
+    }
+
+    $label = switch ($modeChoice) {
+        "1" { "Running wizard-selected dry run:" }
+        "2" { "Running wizard-selected apply:" }
+        "3" { "Installing wizard-selected post-update task:" }
+    }
+
+    Invoke-CommandPreview `
+        -Label $label `
+        -ScriptPath $scriptPath `
+        -ExtraArgs $extraArgs `
+        -ConfirmationWord $confirmationWord
+}
+
 function Show-Menu {
     Clear-Host
     Show-Banner
@@ -111,14 +344,15 @@ function Show-Menu {
     Write-Host ""
     Write-Host "Dry run logs what would change. Apply performs the changes."
     Write-Host ""
-    Write-Host "1. Dry run default cleanup"
-    Write-Host "2. Apply default cleanup"
-    Write-Host "3. Apply plus block OneDrive file sync"
-    Write-Host "4. Apply plus block OneDrive and disable Edge updates"
-    Write-Host "5. Apply plus uninstall OneDrive"
-    Write-Host "6. Install post-update scheduled task"
-    Write-Host "7. Install post-update task with OneDrive block and Edge update disable"
-    Write-Host "8. Open walkthrough text"
+    Write-Host "1. Guided step-by-step wizard"
+    Write-Host "2. Dry run default cleanup"
+    Write-Host "3. Apply default cleanup"
+    Write-Host "4. Apply plus block OneDrive file sync"
+    Write-Host "5. Apply plus block OneDrive and disable Edge updates"
+    Write-Host "6. Apply plus uninstall OneDrive"
+    Write-Host "7. Install post-update scheduled task"
+    Write-Host "8. Install post-update task with OneDrive block and Edge update disable"
+    Write-Host "9. Open walkthrough text"
     Write-Host "Q. Quit"
     Write-Host ""
 }
@@ -129,61 +363,69 @@ if (-not (Test-IsAdmin)) {
     Write-Host ""
 }
 
+if ($Wizard) {
+    Start-Wizard
+    return
+}
+
 do {
     Show-Menu
     $choice = Read-Host "Choose"
 
     switch ($choice.ToUpperInvariant()) {
         "1" {
+            Start-Wizard
+        }
+        "2" {
             Invoke-CommandPreview `
                 -Label "Dry run default cleanup:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @() `
                 -ConfirmationWord $null
         }
-        "2" {
+        "3" {
             Invoke-CommandPreview `
                 -Label "Apply default cleanup:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply") `
                 -ConfirmationWord "APPLY"
         }
-        "3" {
+        "4" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup and block OneDrive file sync:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-BlockOneDrive") `
                 -ConfirmationWord "APPLY"
         }
-        "4" {
+        "5" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup, block OneDrive, and disable Edge updates:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-BlockOneDrive", "-DisableEdgeUpdates") `
                 -ConfirmationWord "APPLY"
         }
-        "5" {
+        "6" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup and uninstall OneDrive:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-RemoveOneDrive") `
                 -ConfirmationWord "REMOVE"
         }
-        "6" {
+        "7" {
             Invoke-CommandPreview `
                 -Label "Install post-update scheduled task:" `
                 -ScriptPath $installerScript `
                 -ExtraArgs @() `
                 -ConfirmationWord "INSTALL"
         }
-        "7" {
+        "8" {
             Invoke-CommandPreview `
                 -Label "Install post-update task with OneDrive block and Edge update disable:" `
                 -ScriptPath $installerScript `
                 -ExtraArgs @("-BlockOneDrive", "-DisableEdgeUpdates") `
                 -ConfirmationWord "INSTALL"
         }
-        "8" {
+        "9" {
             $walkthrough = Join-Path $scriptRoot "WALKTHROUGH.txt"
             if (Test-Path -LiteralPath $walkthrough) {
                 Get-Content -LiteralPath $walkthrough | more

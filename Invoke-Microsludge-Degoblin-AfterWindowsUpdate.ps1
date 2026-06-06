@@ -9,7 +9,12 @@ param(
     [switch]$TestOnly,
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
-    [switch]$DisableEdgeUpdates
+    [switch]$DisableEdgeUpdates,
+    [switch]$SkipCopilot,
+    [switch]$SkipOneDrive,
+    [switch]$SkipEdge,
+    [switch]$SkipOutlook,
+    [switch]$SkipConsumerContent
 )
 
 $ErrorActionPreference = "Stop"
@@ -93,6 +98,21 @@ if ($RemoveOneDrive) {
 if ($DisableEdgeUpdates) {
     $options += "DisableEdgeUpdates"
 }
+if ($SkipCopilot) {
+    $options += "SkipCopilot"
+}
+if ($SkipOneDrive) {
+    $options += "SkipOneDrive"
+}
+if ($SkipEdge) {
+    $options += "SkipEdge"
+}
+if ($SkipOutlook) {
+    $options += "SkipOutlook"
+}
+if ($SkipConsumerContent) {
+    $options += "SkipConsumerContent"
+}
 $optionSummary = if ($options.Count -gt 0) { $options -join ", " } else { "default" }
 
 Write-AutoLog "Starting automated Microsludge Degoblin check."
@@ -141,6 +161,21 @@ if ($RemoveOneDrive) {
 }
 if ($DisableEdgeUpdates) {
     $arguments += "-DisableEdgeUpdates"
+}
+if ($SkipCopilot) {
+    $arguments += "-SkipCopilot"
+}
+if ($SkipOneDrive) {
+    $arguments += "-SkipOneDrive"
+}
+if ($SkipEdge) {
+    $arguments += "-SkipEdge"
+}
+if ($SkipOutlook) {
+    $arguments += "-SkipOutlook"
+}
+if ($SkipConsumerContent) {
+    $arguments += "-SkipConsumerContent"
 }
 
 Write-AutoLog "Running Microsludge-Degoblin.ps1 -Apply with options: $optionSummary"

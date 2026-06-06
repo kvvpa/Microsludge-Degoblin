@@ -43,7 +43,20 @@ What "apply" means:
   scheduled task changes, service changes, Appx removals, and registry policy edits.
 
 Recommended first run:
+  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
+
+Quick menu:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
+
+Wizard mode:
+  The wizard asks for a run mode, explains each cleanup target, asks which parts
+  to include, shows the exact command, and asks for confirmation before apply or
+  scheduled-task install paths.
+
+  Wizard run modes:
+    - Dry run now: logs what would change, changes nothing
+    - Apply now: performs the selected cleanup immediately
+    - Install post-update task: saves the selected options for future Windows Update reboots
 
 Manual dry run:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1

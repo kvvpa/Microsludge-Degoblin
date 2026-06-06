@@ -8,7 +8,12 @@ waits two minutes, then calls the Windows Update-aware wrapper.
 param(
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
-    [switch]$DisableEdgeUpdates
+    [switch]$DisableEdgeUpdates,
+    [switch]$SkipCopilot,
+    [switch]$SkipOneDrive,
+    [switch]$SkipEdge,
+    [switch]$SkipOutlook,
+    [switch]$SkipConsumerContent
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,6 +48,21 @@ if ($RemoveOneDrive) {
 if ($DisableEdgeUpdates) {
     $argument += " -DisableEdgeUpdates"
 }
+if ($SkipCopilot) {
+    $argument += " -SkipCopilot"
+}
+if ($SkipOneDrive) {
+    $argument += " -SkipOneDrive"
+}
+if ($SkipEdge) {
+    $argument += " -SkipEdge"
+}
+if ($SkipOutlook) {
+    $argument += " -SkipOutlook"
+}
+if ($SkipConsumerContent) {
+    $argument += " -SkipConsumerContent"
+}
 
 $options = @()
 if ($BlockOneDrive) {
@@ -53,6 +73,21 @@ if ($RemoveOneDrive) {
 }
 if ($DisableEdgeUpdates) {
     $options += "DisableEdgeUpdates"
+}
+if ($SkipCopilot) {
+    $options += "SkipCopilot"
+}
+if ($SkipOneDrive) {
+    $options += "SkipOneDrive"
+}
+if ($SkipEdge) {
+    $options += "SkipEdge"
+}
+if ($SkipOutlook) {
+    $options += "SkipOutlook"
+}
+if ($SkipConsumerContent) {
+    $options += "SkipConsumerContent"
 }
 $optionSummary = if ($options.Count -gt 0) { $options -join ", " } else { "default" }
 
