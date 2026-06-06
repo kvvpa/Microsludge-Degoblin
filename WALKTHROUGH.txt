@@ -193,6 +193,11 @@ Scheduled task walkthrough:
   folder can be moved or deleted after install. Running the installer again
   refreshes the installed copy while preserving installed logs.
 
+  Installing the task also creates:
+    - A Start Menu folder named Microsludge Degoblin 9000
+    - A Windows Installed Apps / Add or Remove Programs entry
+    - An uninstall launcher that removes the task, app entry, shortcuts, and installed copy
+
   Install default post-update task:
     powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1
 
@@ -206,6 +211,8 @@ Scheduled task walkthrough:
     powershell -ExecutionPolicy Bypass -File .\Scripts\Uninstall-Microsludge-DegoblinTask.ps1
 
     This removes the scheduled task and the installed ProgramData package copy.
+    You can also uninstall from Windows Settings under Installed Apps / Add or
+    Remove Programs.
 
   What the scheduled task does:
     - Runs at user logon

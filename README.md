@@ -2,7 +2,7 @@
 
 # Microsludge Degoblin
 
-Current version: `0.2.3` (see `VERSION`).
+Current version: `1.0.0` (see `VERSION`).
 
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
@@ -164,6 +164,12 @@ C:\ProgramData\Microsludge-Degoblin
 
 The task runs from that installed copy, so the downloaded package folder can be moved or deleted after task install. Running the installer again refreshes the installed copy while preserving installed logs. Running the uninstaller removes both the scheduled task and the installed package copy.
 
+Task install also adds:
+
+- A Start Menu folder: `Microsludge Degoblin 9000`
+- A Windows Installed Apps / Add or Remove Programs entry
+- An uninstall launcher that removes the task, app entry, Start Menu shortcuts, and installed copy
+
 Install the Windows Update-aware scheduled task:
 
 ```powershell
@@ -187,6 +193,8 @@ Remove the scheduled task:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Scripts\Uninstall-Microsludge-DegoblinTask.ps1
 ```
+
+You can also uninstall from Windows Settings under Installed Apps / Add or Remove Programs.
 
 By default, the task runs at logon, waits two minutes, and only applies cleanup when Windows Update evidence is found. Evidence can come from restart/update event logs or the Windows Update pending-reboot registry key. With `-AlwaysApply`, it skips that evidence gate.
 

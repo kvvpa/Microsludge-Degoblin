@@ -81,6 +81,75 @@ function Copy-MicrosludgePackageToInstallRoot {
         }
 }
 
+function Install-MicrosludgeStartMenuShortcuts {
+    param(
+        [string]$InstallRoot
+    )
+
+    $startMenuFolder = Get-MicrosludgeStartMenuFolder
+    $launcher = Join-Path $InstallRoot "START-HERE-Microsludge-Degoblin.vbs"
+    $uninstallLauncher = Join-Path $InstallRoot "UNINSTALL-Microsludge-Degoblin.vbs"
+    $wscript = Join-Path $env:WINDIR "System32\wscript.exe"
+    $icon = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+
+    New-Item -ItemType Directory -Force -Path $startMenuFolder | Out-Null
+
+    $shell = New-Object -ComObject WScript.Shell
+
+    $appShortcutPath = Join-Path $startMenuFolder "Microsludge Degoblin 9000.lnk"
+    $appShortcut = $shell.CreateShortcut($appShortcutPath)
+    $appShortcut.TargetPath = $wscript
+    $appShortcut.Arguments = ('"{0}"' -f $launcher)
+    $appShortcut.WorkingDirectory = $InstallRoot
+    $appShortcut.Description = "Launch Microsludge Degoblin 9000"
+    $appShortcut.IconLocation = "$icon,0"
+    $appShortcut.Save()
+
+    $uninstallShortcutPath = Join-Path $startMenuFolder "Uninstall Microsludge Degoblin 9000.lnk"
+    $uninstallShortcut = $shell.CreateShortcut($uninstallShortcutPath)
+    $uninstallShortcut.TargetPath = $wscript
+    $uninstallShortcut.Arguments = ('"{0}"' -f $uninstallLauncher)
+    $uninstallShortcut.WorkingDirectory = $InstallRoot
+    $uninstallShortcut.Description = "Uninstall Microsludge Degoblin 9000"
+    $uninstallShortcut.IconLocation = "$icon,0"
+    $uninstallShortcut.Save()
+
+    return $startMenuFolder
+}
+
+function Register-MicrosludgeInstalledApp {
+    param(
+        [string]$InstallRoot,
+        [string]$Version
+    )
+
+    $registryPath = Get-MicrosludgeUninstallRegistryPath
+    $uninstallLauncher = Join-Path $InstallRoot "UNINSTALL-Microsludge-Degoblin.vbs"
+    $wscript = Join-Path $env:WINDIR "System32\wscript.exe"
+    $uninstallString = '"{0}" "{1}"' -f $wscript, $uninstallLauncher
+    $estimatedSize = 0
+
+    try {
+        $estimatedSize = [int]([math]::Ceiling(((Get-ChildItem -LiteralPath $InstallRoot -Recurse -File -ErrorAction SilentlyContinue |
+            Measure-Object -Property Length -Sum).Sum) / 1KB))
+    } catch {
+        $estimatedSize = 0
+    }
+
+    New-Item -Path $registryPath -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "DisplayName" -Value "Microsludge Degoblin 9000" -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "DisplayVersion" -Value $Version -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "Publisher" -Value "Microsludge Degoblin contributors" -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "InstallLocation" -Value $InstallRoot -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "DisplayIcon" -Value $wscript -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "UninstallString" -Value $uninstallString -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $registryPath -Name "EstimatedSize" -Value $estimatedSize -PropertyType DWord -Force | Out-Null
+
+    return $registryPath
+}
+
 if (-not (Test-MicrosludgeIsAdmin)) {
     throw "This installer must be run as Administrator."
 }
@@ -102,6 +171,8 @@ if (-not (Test-Path -LiteralPath $installedWrapper)) {
 }
 
 New-Item -ItemType Directory -Force -Path $installedLogRoot | Out-Null
+$startMenuFolder = Install-MicrosludgeStartMenuShortcuts -InstallRoot $installRoot
+$installedAppRegistryPath = Register-MicrosludgeInstalledApp -InstallRoot $installRoot -Version $installedVersion
 
 $switchValues = @{
     AlwaysApply = $AlwaysApply.IsPresent
@@ -163,6 +234,8 @@ Write-Host "Installed package copy: $installRoot"
 Write-Host "Installed version: $installedVersion"
 Write-Host "Scheduled task wrapper: $installedWrapper"
 Write-Host "Installed logs: $installedLogRoot"
+Write-Host "Start Menu folder: $startMenuFolder"
+Write-Host "Apps entry: $installedAppRegistryPath"
 
 Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath |
     Select-Object TaskName, TaskPath, State

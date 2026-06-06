@@ -23,6 +23,8 @@ if (-not (Test-MicrosludgeIsAdmin)) {
 }
 
 $installRoot = Get-MicrosludgeInstallRoot
+$startMenuFolder = Get-MicrosludgeStartMenuFolder
+$uninstallRegistryPath = Get-MicrosludgeUninstallRegistryPath
 
 $task = Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
 if ($task) {
@@ -30,6 +32,30 @@ if ($task) {
     Write-Host "Removed scheduled task: $taskPath$taskName"
 } else {
     Write-Host "Scheduled task not found: $taskPath$taskName"
+}
+
+if (Test-Path -LiteralPath $startMenuFolder) {
+    try {
+        Remove-Item -LiteralPath $startMenuFolder -Recurse -Force -ErrorAction Stop
+        Write-Host "Removed Start Menu folder: $startMenuFolder"
+    } catch {
+        Write-Host "WARNING: Could not remove Start Menu folder: $startMenuFolder"
+        Write-Host "WARNING: $($_.Exception.Message)"
+    }
+} else {
+    Write-Host "Start Menu folder not found: $startMenuFolder"
+}
+
+if (Test-Path -LiteralPath $uninstallRegistryPath) {
+    try {
+        Remove-Item -LiteralPath $uninstallRegistryPath -Recurse -Force -ErrorAction Stop
+        Write-Host "Removed Apps entry: $uninstallRegistryPath"
+    } catch {
+        Write-Host "WARNING: Could not remove Apps entry: $uninstallRegistryPath"
+        Write-Host "WARNING: $($_.Exception.Message)"
+    }
+} else {
+    Write-Host "Apps entry not found: $uninstallRegistryPath"
 }
 
 if (-not (Test-Path -LiteralPath $installRoot)) {

@@ -8,6 +8,14 @@ function Get-MicrosludgeInstallRoot {
     return (Join-Path ([Environment]::GetFolderPath("CommonApplicationData")) "Microsludge-Degoblin")
 }
 
+function Get-MicrosludgeStartMenuFolder {
+    return (Join-Path ([Environment]::GetFolderPath("CommonPrograms")) "Microsludge Degoblin 9000")
+}
+
+function Get-MicrosludgeUninstallRegistryPath {
+    return "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsludge-Degoblin"
+}
+
 function Get-MicrosludgeVersion {
     param([string]$Root)
 
