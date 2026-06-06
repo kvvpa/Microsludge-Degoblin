@@ -21,6 +21,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptRoot
 $helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $wrapper = Join-Path $scriptRoot "Invoke-Microsludge-Degoblin-AfterWindowsUpdate.ps1"
 $taskName = "Microsludge Degoblin After Windows Update"
@@ -70,7 +71,7 @@ $optionSummary = Get-MicrosludgeOptionSummary -Values $switchValues -Names (Get-
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
     -Argument $argument `
-    -WorkingDirectory $scriptRoot
+    -WorkingDirectory $repoRoot
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $trigger.Delay = "PT2M"

@@ -1,0 +1,8 @@
+DOUBLE-CLICK THIS:
+
+  START-HERE-Microsludge-Degoblin.vbs
+
+That opens the normal app without a PowerShell window hanging around.
+
+The Scripts folder is the engine room. You only need it for debugging,
+manual commands, or doing things the hard way on purpose.

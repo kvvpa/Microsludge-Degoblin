@@ -36,14 +36,14 @@ Admin requirement:
 
 Recommended first run:
   GUI:
-  Double-click Start-Microsludge-Degoblin-GUI.vbs
-  From PowerShell: .\Start-Microsludge-Degoblin-GUI.vbs
+  Double-click START-HERE-Microsludge-Degoblin.vbs
+  From PowerShell: .\START-HERE-Microsludge-Degoblin.vbs
 
   GUI from PowerShell, useful for debugging:
-  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-GUI.ps1
 
   Guided wizard:
-  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
 
 GUI mode:
   The GUI keeps the same engine scripts underneath. It can:
@@ -56,7 +56,7 @@ GUI mode:
     - Open the logs folder
 
 Quick menu:
-  powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-Walkthrough.ps1
 
 Wizard mode:
   The wizard asks for a run mode, explains each cleanup target, asks which parts
@@ -75,10 +75,10 @@ Wizard mode:
     - Test for Windows AI targets: report only, changes nothing
 
 Manual dry run:
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1
 
 Windows AI detection:
-  powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Test-Microsludge-WindowsAI.ps1
 
   This reports whether known Windows AI policy targets and related packages or
   features appear to exist on the current machine. It checks Recall, Click to Do,
@@ -98,13 +98,13 @@ Windows AI cleanup:
   It does not remove the Recall optional feature bits.
 
 Manual apply:
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply
 
 Stronger manual apply:
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 
 Optional OneDrive uninstall:
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
 
 Exact default cleanup:
 
@@ -171,16 +171,16 @@ Optional stronger switches:
 Scheduled task walkthrough:
 
   Install default post-update task:
-    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1
+    powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1
 
   Install every-logon task:
-    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
+    powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
 
   Install stronger post-update task:
-    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
+    powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
 
   Remove scheduled task:
-    powershell -ExecutionPolicy Bypass -File .\Uninstall-Microsludge-DegoblinTask.ps1
+    powershell -ExecutionPolicy Bypass -File .\Scripts\Uninstall-Microsludge-DegoblinTask.ps1
 
   What the scheduled task does:
     - Runs at user logon

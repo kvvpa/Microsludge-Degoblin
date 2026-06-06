@@ -8,6 +8,14 @@ It targets things like Copilot, OneDrive startup entries, new Outlook, Edge back
 
 It has both a PowerShell console walkthrough and a GUI with guided setup, so users do not have to memorize which switches do what.
 
+## What Do I Click?
+
+- `START-HERE-Microsludge-Degoblin.vbs`: double-click this to open the normal app.
+- `START-HERE.txt`: tiny plain-English launch note.
+- `WALKTHROUGH.txt`: longer plain-English walkthrough.
+- `Scripts\`: the PowerShell engine room for debugging and manual commands.
+- `Assets\`: pictures used by the GUI and README.
+
 ## Default Targets
 
 - Copilot Appx packages and provisioned packages
@@ -39,21 +47,21 @@ Graphical launcher:
 Double-click:
 
 ```text
-Start-Microsludge-Degoblin-GUI.vbs
+START-HERE-Microsludge-Degoblin.vbs
 ```
 
 From PowerShell:
 
 ```powershell
-.\Start-Microsludge-Degoblin-GUI.vbs
+.\START-HERE-Microsludge-Degoblin.vbs
 ```
 
-The `.vbs` launcher starts the GUI without leaving a PowerShell console window open.
+That launcher starts the GUI without leaving a PowerShell console window open. The `Scripts` folder is the engine room; most users do not need to open it.
 
 PowerShell launch, useful for debugging:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-GUI.ps1
 ```
 
 The GUI includes guided setup, Windows AI detection, dry run, apply, scheduled-task install/removal, and log access.
@@ -61,37 +69,37 @@ The GUI includes guided setup, Windows AI detection, dry run, apply, scheduled-t
 Guided console wizard:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
+powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
 ```
 
 Quick console menu:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-Walkthrough.ps1
 ```
 
 Dry run first:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1
 ```
 
 Apply default cleanup:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
+powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply
 ```
 
 Apply stronger cleanup:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
+powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 ```
 
 Uninstall OneDrive too:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
+powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
 ```
 
 ## Windows AI Detection
@@ -99,7 +107,7 @@ powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -Remo
 Detection-only command:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Test-Microsludge-WindowsAI.ps1
 ```
 
 This reports:
@@ -137,25 +145,25 @@ Optional stronger switches:
 Install the Windows Update-aware scheduled task:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1
 ```
 
 Install an every-logon scheduled task:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
+powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
 ```
 
 Install it with stronger options:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
+powershell -ExecutionPolicy Bypass -File .\Scripts\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
 ```
 
 Remove the scheduled task:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Uninstall-Microsludge-DegoblinTask.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\Uninstall-Microsludge-DegoblinTask.ps1
 ```
 
 By default, the task runs at logon, waits two minutes, and only applies cleanup when Windows Update evidence is found. Evidence can come from restart/update event logs or the Windows Update pending-reboot registry key. With `-AlwaysApply`, it skips that evidence gate.

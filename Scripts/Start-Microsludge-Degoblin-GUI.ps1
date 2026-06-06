@@ -13,12 +13,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptRoot
 $helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $mainScript = Join-Path $scriptRoot "Microsludge-Degoblin.ps1"
 $installerScript = Join-Path $scriptRoot "Install-Microsludge-DegoblinTask.ps1"
 $uninstallerScript = Join-Path $scriptRoot "Uninstall-Microsludge-DegoblinTask.ps1"
-$logRoot = Join-Path $scriptRoot "Logs"
-$assetRoot = Join-Path $scriptRoot "Assets"
+$logRoot = Join-Path $repoRoot "Logs"
+$assetRoot = Join-Path $repoRoot "Assets"
 $headerImagePath = Join-Path $assetRoot "microsludge-degoblin-9000-header.png"
 $splashImagePath = Join-Path $assetRoot "microsludge-degoblin-9000-splash.png"
 
@@ -27,6 +28,8 @@ if (-not (Test-Path -LiteralPath $helpers)) {
 }
 
 . $helpers
+
+New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -830,7 +833,7 @@ $ElevateButton.Add_Click({
         ('"{0}"' -f $PSCommandPath)
     )
 
-    Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join " ") -Verb RunAs -WindowStyle Hidden
+    Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join " ") -Verb RunAs -WindowStyle Hidden -WorkingDirectory $repoRoot
     $window.Close()
 })
 

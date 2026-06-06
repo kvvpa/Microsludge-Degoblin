@@ -25,9 +25,9 @@ Default non-targets:
   - Does not disable Windows AI policies unless -DisableWindowsAI is passed
 
 Usage:
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
-  powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply
+  powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 #>
 
 param(
@@ -45,7 +45,9 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-$helpers = Join-Path $PSScriptRoot "Microsludge-Degoblin.Helpers.ps1"
+$scriptRoot = $PSScriptRoot
+$repoRoot = Split-Path -Parent $scriptRoot
+$helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 if (-not (Test-Path -LiteralPath $helpers)) {
     throw "Helper script not found: $helpers"
 }
@@ -53,7 +55,7 @@ if (-not (Test-Path -LiteralPath $helpers)) {
 . $helpers
 
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$logRoot = Join-Path $PSScriptRoot "Logs"
+$logRoot = Join-Path $repoRoot "Logs"
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $logPath = Join-Path $logRoot "Microsludge-Degoblin-$timestamp.log"
 

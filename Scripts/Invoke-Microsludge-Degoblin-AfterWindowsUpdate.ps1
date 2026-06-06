@@ -23,9 +23,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptRoot
 $helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $targetScript = Join-Path $scriptRoot "Microsludge-Degoblin.ps1"
-$logRoot = Join-Path $scriptRoot "Logs"
+$logRoot = Join-Path $repoRoot "Logs"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logPath = Join-Path $logRoot "Microsludge-Degoblin-Auto-$timestamp.log"
 

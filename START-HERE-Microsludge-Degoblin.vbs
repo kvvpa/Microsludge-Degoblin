@@ -11,7 +11,7 @@ Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
-guiScript = fso.BuildPath(scriptDir, "Start-Microsludge-Degoblin-GUI.ps1")
+guiScript = fso.BuildPath(fso.BuildPath(scriptDir, "Scripts"), "Start-Microsludge-Degoblin-GUI.ps1")
 
 command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File " & QuoteArg(guiScript)
 
