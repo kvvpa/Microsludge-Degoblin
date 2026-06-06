@@ -793,13 +793,15 @@ foreach ($control in $optionControls) {
 $ElevateButton.Add_Click({
     $argList = @(
         "-NoProfile",
+        "-WindowStyle",
+        "Hidden",
         "-ExecutionPolicy",
         "Bypass",
         "-File",
         ('"{0}"' -f $PSCommandPath)
     )
 
-    Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join " ") -Verb RunAs
+    Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join " ") -Verb RunAs -WindowStyle Hidden
     $window.Close()
 })
 
