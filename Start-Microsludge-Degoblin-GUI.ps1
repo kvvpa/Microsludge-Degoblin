@@ -77,7 +77,7 @@ function Show-MicrosludgeSplash {
     $window.Topmost = $true
     $window.Content = $border
     $null = $window.Show()
-    Start-Sleep -Milliseconds 1100
+    Start-Sleep -Milliseconds 1800
     $window.Close()
 }
 
@@ -107,112 +107,145 @@ $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Microsludge Degoblin 9000"
-        Width="1060"
-        Height="760"
-        MinWidth="900"
-        MinHeight="680"
+        Width="940"
+        Height="720"
+        MinWidth="840"
+        MinHeight="650"
         WindowStartupLocation="CenterScreen"
         Background="#101416"
         FontFamily="Segoe UI">
-    <Grid Margin="16">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBrush" Color="#151B1E"/>
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#344147"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#EAF1EC"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#9AA9A0"/>
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="Background" Value="#223036"/>
+            <Setter Property="Foreground" Value="#F4F7F2"/>
+            <Setter Property="BorderBrush" Value="#4F626A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F4F7F2"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#315D38"/>
+            <Setter Property="BorderBrush" Value="#78A868"/>
+        </Style>
+        <Style x:Key="ApplyButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#71401E"/>
+            <Setter Property="BorderBrush" Value="#D47B2B"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#0B0E10" BorderBrush="#263237" BorderThickness="1" CornerRadius="6" Padding="12">
-            <Image x:Name="HeaderImage" Height="150" Stretch="Uniform" HorizontalAlignment="Center"/>
+        <Border Grid.Row="0" Background="#0B0E10" BorderBrush="#344147" BorderThickness="1" CornerRadius="6" Padding="10">
+            <Image x:Name="HeaderImage" Height="118" Stretch="Uniform" HorizontalAlignment="Center"/>
         </Border>
 
-        <Grid Grid.Row="1" Margin="0,12,0,12">
+        <Grid Grid.Row="1" Margin="0,10,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="AdminStatusText"
                        Grid.Column="0"
-                       Foreground="#DDE7E1"
-                       FontSize="14"
+                       Foreground="{StaticResource TextBrush}"
+                       FontSize="13"
                        VerticalAlignment="Center"
                        Text="Checking admin status..."/>
             <Button x:Name="ElevateButton"
                     Grid.Column="1"
-                    Width="170"
-                    Height="34"
+                    Width="150"
                     Margin="12,0,0,0"
                     Content="Relaunch as admin"/>
         </Grid>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="360"/>
+                <ColumnDefinition Width="292"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="#151B1E" BorderBrush="#2A363B" BorderThickness="1" CornerRadius="6" Padding="14">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="Targets" Foreground="#F4F7F2" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="CheckCopilot" Content="Copilot cleanup" IsChecked="True" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckOneDrive" Content="OneDrive startup cleanup" IsChecked="True" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckEdge" Content="Edge background cleanup" IsChecked="True" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckOutlook" Content="New Outlook cleanup" IsChecked="True" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckConsumerContent" Content="Ads, suggestions, widgets" IsChecked="True" Foreground="#EAF1EC" Margin="0,6,0,0"/>
+            <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="Targets" Style="{StaticResource GroupTitle}"/>
+                    <CheckBox x:Name="CheckCopilot" Content="Copilot" IsChecked="True"/>
+                    <CheckBox x:Name="CheckOneDrive" Content="OneDrive startup" IsChecked="True"/>
+                    <CheckBox x:Name="CheckEdge" Content="Edge background" IsChecked="True"/>
+                    <CheckBox x:Name="CheckOutlook" Content="New Outlook" IsChecked="True"/>
+                    <CheckBox x:Name="CheckConsumerContent" Content="Ads / widgets" IsChecked="True"/>
 
-                        <Separator Margin="0,14,0,14" Background="#2A363B"/>
+                    <Separator Margin="0,10,0,10" Background="#2A363B"/>
 
-                        <TextBlock Text="Stronger Options" Foreground="#F4F7F2" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="CheckBlockOneDrive" Content="Block OneDrive file sync" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckRemoveOneDrive" Content="Uninstall OneDrive" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckDisableEdgeUpdates" Content="Disable Edge updates" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <CheckBox x:Name="CheckWindowsAI" Content="Windows AI cleanup: run report first" Foreground="#EAF1EC" IsEnabled="False" Margin="0,6,0,0"/>
+                    <TextBlock Text="Stronger" Style="{StaticResource GroupTitle}"/>
+                    <CheckBox x:Name="CheckBlockOneDrive" Content="Block OneDrive sync"/>
+                    <CheckBox x:Name="CheckRemoveOneDrive" Content="Uninstall OneDrive"/>
+                    <CheckBox x:Name="CheckDisableEdgeUpdates" Content="Disable Edge updates"/>
+                    <CheckBox x:Name="CheckWindowsAI" Content="Windows AI cleanup" IsEnabled="False" ToolTip="Run the AI report first." ToolTipService.ShowOnDisabled="True"/>
 
-                        <Separator Margin="0,14,0,14" Background="#2A363B"/>
+                    <Separator Margin="0,10,0,10" Background="#2A363B"/>
 
-                        <TextBlock Text="Scheduled Task" Foreground="#F4F7F2" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="CheckAlwaysApply" Content="Run at every logon" Foreground="#EAF1EC" Margin="0,6,0,0"/>
-                        <TextBlock Text="Unchecked means the task waits for Windows Update evidence."
-                                   TextWrapping="Wrap"
-                                   Foreground="#96A59C"
-                                   Margin="22,4,0,0"/>
+                    <TextBlock Text="Task" Style="{StaticResource GroupTitle}"/>
+                    <CheckBox x:Name="CheckAlwaysApply" Content="Run at every logon" ToolTip="Unchecked means the task waits for Windows Update evidence."/>
 
-                        <Separator Margin="0,14,0,14" Background="#2A363B"/>
+                    <Separator Margin="0,10,0,10" Background="#2A363B"/>
 
-                        <TextBlock Text="Current Selection" Foreground="#F4F7F2" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Selection" Style="{StaticResource GroupTitle}"/>
+                    <Border Background="#0B0F10" BorderBrush="#2A363B" BorderThickness="1" CornerRadius="4" Padding="8" MinHeight="46">
                         <TextBlock x:Name="OptionSummaryText"
                                    Text="default"
-                                   TextWrapping="Wrap"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
                                    Foreground="#B7F7C1"
+                                   FontSize="12"
                                    FontFamily="Consolas"/>
-                    </StackPanel>
-                </ScrollViewer>
+                    </Border>
+                </StackPanel>
             </Border>
 
-            <Grid Grid.Column="1" Margin="12,0,0,0">
+            <Grid Grid.Column="1" Margin="10,0,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <WrapPanel Grid.Row="0" Margin="0,0,0,10">
-                    <Button x:Name="RunReportButton" Content="Run AI report" Width="125" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="DryRunButton" Content="Dry run" Width="100" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="ApplyButton" Content="Apply" Width="100" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="InstallTaskButton" Content="Install task" Width="110" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="UninstallTaskButton" Content="Uninstall task" Width="120" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="OpenLogsButton" Content="Open logs" Width="100" Height="34" Margin="0,0,8,8"/>
-                    <Button x:Name="ShowSplashButton" Content="Splash" Width="80" Height="34" Margin="0,0,8,8"/>
+                <WrapPanel Grid.Row="0" Margin="0,0,0,10" HorizontalAlignment="Center">
+                    <Button x:Name="RunReportButton" Content="AI report" Width="96" Style="{StaticResource AccentButton}"/>
+                    <Button x:Name="DryRunButton" Content="Dry run" Width="86"/>
+                    <Button x:Name="ApplyButton" Content="Apply" Width="86" Style="{StaticResource ApplyButtonStyle}"/>
+                    <Button x:Name="InstallTaskButton" Content="Install task" Width="102"/>
+                    <Button x:Name="UninstallTaskButton" Content="Remove task" Width="102"/>
+                    <Button x:Name="OpenLogsButton" Content="Logs" Width="74"/>
+                    <Button x:Name="ShowSplashButton" Content="Splash" Width="78"/>
                 </WrapPanel>
 
                 <TextBox x:Name="OutputBox"
                          Grid.Row="1"
                          Background="#070A0C"
                          Foreground="#D7FFE3"
-                         BorderBrush="#2A363B"
+                         BorderBrush="{StaticResource PanelBorderBrush}"
                          FontFamily="Consolas"
-                         FontSize="12"
+                         FontSize="12.5"
                          IsReadOnly="True"
                          TextWrapping="Wrap"
                          AcceptsReturn="True"
@@ -220,12 +253,6 @@ $xaml = @'
                          HorizontalScrollBarVisibility="Auto"/>
             </Grid>
         </Grid>
-
-        <TextBlock Grid.Row="3"
-                   Margin="0,12,0,0"
-                   Foreground="#7F8D86"
-                   Text="Dry run reports only. Apply and scheduled-task actions require Administrator."
-                   HorizontalAlignment="Center"/>
     </Grid>
 </Window>
 '@
@@ -327,7 +354,9 @@ function Get-GuiWrapperArgs {
 
 function Update-GuiSummary {
     $values = Get-GuiSwitchValues
-    $OptionSummaryText.Text = Get-MicrosludgeOptionSummary -Values $values -Names (Get-MicrosludgeWrapperSwitchNames)
+    $summary = Get-MicrosludgeOptionSummary -Values $values -Names (Get-MicrosludgeWrapperSwitchNames)
+    $OptionSummaryText.Text = $summary
+    $OptionSummaryText.ToolTip = $summary
 }
 
 function Update-GuiState {
@@ -478,11 +507,13 @@ $RunReportButton.Add_Click({
 
         $script:WindowsAITargetFound = Test-MicrosludgeWindowsAITargetFound -Detection $detection
         if ($script:WindowsAITargetFound) {
-            $CheckWindowsAI.Content = "Windows AI cleanup: available"
+            $CheckWindowsAI.Content = "Windows AI cleanup"
+            $CheckWindowsAI.ToolTip = "Available. The report found Windows AI targets."
             Add-GuiLog "Windows AI cleanup option enabled."
         } else {
             $CheckWindowsAI.IsChecked = $false
-            $CheckWindowsAI.Content = "Windows AI cleanup: omitted, no targets found"
+            $CheckWindowsAI.Content = "Windows AI cleanup"
+            $CheckWindowsAI.ToolTip = "Omitted. The report did not find Windows AI targets."
             Add-GuiLog "Windows AI cleanup option omitted because no targets were found."
         }
     } catch {
