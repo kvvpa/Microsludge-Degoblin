@@ -63,9 +63,21 @@ Wizard mode:
     - Apply now: performs the selected cleanup immediately
     - Install post-update task: saves the selected options for future Windows Update reboots
     - Uninstall post-update task: removes the saved automatic cleanup task
+    - Test for Windows AI targets: report only, changes nothing
 
 Manual dry run:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
+
+Windows AI detection:
+  powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
+
+  This reports whether known Windows AI policy targets and related packages or
+  features appear to exist on the current machine. It checks Recall, Click to Do,
+  Settings AI agent, Paint AI policy values, related Appx packages, the Recall
+  optional feature state when queryable, and related running processes.
+
+  This is detection-only. It does not change registry values, packages, features,
+  services, tasks, or processes.
 
 Manual apply:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply

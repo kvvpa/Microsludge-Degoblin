@@ -116,3 +116,177 @@ function Remove-MicrosludgeOldLogs {
         }
     }
 }
+
+function Get-MicrosludgeRegistryValueState {
+    param(
+        [string]$Path,
+        [string]$Name
+    )
+
+    $state = [ordered]@{
+        Path = $Path
+        Name = $Name
+        Exists = $false
+        Value = $null
+    }
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return [pscustomobject]$state
+    }
+
+    try {
+        $property = Get-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop
+        $state.Exists = $true
+        $state.Value = $property.$Name
+    } catch {
+        $state.Exists = $false
+        $state.Value = $null
+    }
+
+    return [pscustomobject]$state
+}
+
+function Get-MicrosludgeWindowsAIDetection {
+    $windowsAIPaths = @(
+        "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+        "HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+    )
+
+    $paintPolicyPath = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Paint"
+    $policyChecks = @(
+        @{ Label = "Recall availability policy"; Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "AllowRecallEnablement" },
+        @{ Label = "Recall snapshot policy"; Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "DisableAIDataAnalysis" },
+        @{ Label = "Recall snapshot policy"; Path = "HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "DisableAIDataAnalysis" },
+        @{ Label = "Click to Do policy"; Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "DisableClickToDo" },
+        @{ Label = "Click to Do policy"; Path = "HKCU:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "DisableClickToDo" },
+        @{ Label = "Settings AI agent policy"; Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Name = "DisableSettingsAgent" },
+        @{ Label = "Paint Cocreator policy"; Path = $paintPolicyPath; Name = "DisableCocreator" },
+        @{ Label = "Paint Generative Fill policy"; Path = $paintPolicyPath; Name = "DisableGenerativeFill" },
+        @{ Label = "Paint Image Creator policy"; Path = $paintPolicyPath; Name = "DisableImageCreator" }
+    )
+
+    $policyStates = foreach ($check in $policyChecks) {
+        $state = Get-MicrosludgeRegistryValueState -Path $check.Path -Name $check.Name
+        [pscustomobject]@{
+            Label = $check.Label
+            Path = $check.Path
+            Name = $check.Name
+            Exists = $state.Exists
+            Value = $state.Value
+        }
+    }
+
+    $optionalFeatures = @()
+    try {
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName "Recall" -ErrorAction SilentlyContinue
+        if ($feature) {
+            $optionalFeatures += [pscustomobject]@{
+                Name = $feature.FeatureName
+                State = $feature.State
+            }
+        }
+    } catch {
+        $optionalFeatures += [pscustomobject]@{
+            Name = "Recall"
+            State = "Unable to query: $($_.Exception.Message)"
+        }
+    }
+
+    $appxPatterns = @(
+        "*Recall*",
+        "*ClickToDo*",
+        "*Click*To*Do*",
+        "*Copilot*",
+        "*Paint*"
+    )
+
+    $appxPackages = @()
+    foreach ($pattern in $appxPatterns) {
+        try {
+            $packages = @(Get-AppxPackage -AllUsers $pattern -ErrorAction SilentlyContinue |
+                Select-Object Name, PackageFullName, Version)
+            $appxPackages += $packages
+        } catch {
+            $appxPackages += [pscustomobject]@{
+                Name = $pattern
+                PackageFullName = "Unable to query: $($_.Exception.Message)"
+                Version = $null
+            }
+        }
+    }
+
+    $appxPackages = @($appxPackages | Sort-Object Name, PackageFullName -Unique)
+
+    $relatedProcesses = @(Get-Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.ProcessName -match "Recall|ClickToDo|Copilot|Paint|WindowsAI|Ai|AIX"
+        } |
+        Select-Object ProcessName, Id, Path |
+        Sort-Object ProcessName)
+
+    return [pscustomobject]@{
+        WindowsAIRegistryPaths = @($windowsAIPaths | Where-Object { Test-Path -LiteralPath $_ })
+        PolicyStates = @($policyStates)
+        OptionalFeatures = @($optionalFeatures)
+        AppxPackages = @($appxPackages)
+        RelatedProcesses = @($relatedProcesses)
+    }
+}
+
+function Write-MicrosludgeWindowsAIReport {
+    param(
+        [object]$Detection,
+        [scriptblock]$Writer
+    )
+
+    if (-not $Writer) {
+        $Writer = { param($Message) Write-Host $Message }
+    }
+
+    & $Writer "WINDOWS AI DETECTION"
+
+    if ($Detection.WindowsAIRegistryPaths.Count -gt 0) {
+        & $Writer "WindowsAI policy registry paths present:"
+        foreach ($path in $Detection.WindowsAIRegistryPaths) {
+            & $Writer "  $path"
+        }
+    } else {
+        & $Writer "WindowsAI policy registry paths present: none found"
+    }
+
+    & $Writer "Policy values:"
+    foreach ($policy in $Detection.PolicyStates) {
+        if ($policy.Exists) {
+            & $Writer "  $($policy.Label): $($policy.Path)\$($policy.Name) = $($policy.Value)"
+        } else {
+            & $Writer "  $($policy.Label): $($policy.Path)\$($policy.Name) not set"
+        }
+    }
+
+    if ($Detection.OptionalFeatures.Count -gt 0) {
+        & $Writer "Optional features:"
+        foreach ($feature in $Detection.OptionalFeatures) {
+            & $Writer "  $($feature.Name): $($feature.State)"
+        }
+    } else {
+        & $Writer "Optional features: Recall feature not found"
+    }
+
+    if ($Detection.AppxPackages.Count -gt 0) {
+        & $Writer "Related Appx packages:"
+        foreach ($package in $Detection.AppxPackages) {
+            & $Writer "  $($package.Name) | $($package.Version) | $($package.PackageFullName)"
+        }
+    } else {
+        & $Writer "Related Appx packages: none found"
+    }
+
+    if ($Detection.RelatedProcesses.Count -gt 0) {
+        & $Writer "Related running processes:"
+        foreach ($process in $Detection.RelatedProcesses) {
+            & $Writer "  $($process.ProcessName) | PID $($process.Id) | $($process.Path)"
+        }
+    } else {
+        & $Writer "Related running processes: none found"
+    }
+}

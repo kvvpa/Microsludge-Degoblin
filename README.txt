@@ -38,14 +38,30 @@ Usage:
   4. Dry run first:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
 
-  5. Apply default Microsoft cleanup:
+  5. Test for Windows AI targets:
+       powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
+
+  6. Apply default Microsoft cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply
 
-  6. Apply stronger cleanup:
+  7. Apply stronger cleanup:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates
 
-  7. Uninstall OneDrive too:
+  8. Uninstall OneDrive too:
        powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1 -Apply -RemoveOneDrive
+
+Windows AI detection:
+  Detection-only command:
+       powershell -ExecutionPolicy Bypass -File .\Test-Microsludge-WindowsAI.ps1
+
+  This reports:
+  - WindowsAI policy registry paths
+  - Recall, Click to Do, Settings AI agent, and Paint AI policy values
+  - Recall optional feature state, when queryable
+  - related Appx packages
+  - related running processes
+
+  It does not change registry values, packages, features, services, tasks, or processes.
 
 Skip switches:
   -SkipCopilot

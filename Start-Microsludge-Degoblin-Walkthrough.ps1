@@ -17,6 +17,7 @@ $helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $mainScript = Join-Path $scriptRoot "Microsludge-Degoblin.ps1"
 $installerScript = Join-Path $scriptRoot "Install-Microsludge-DegoblinTask.ps1"
 $uninstallerScript = Join-Path $scriptRoot "Uninstall-Microsludge-DegoblinTask.ps1"
+$windowsAITestScript = Join-Path $scriptRoot "Test-Microsludge-WindowsAI.ps1"
 
 if (-not (Test-Path -LiteralPath $helpers)) {
     throw "Helper script not found: $helpers"
@@ -194,10 +195,11 @@ function Start-Wizard {
     Write-Host "  2. Apply now: performs the selected cleanup immediately."
     Write-Host "  3. Install post-update task: saves these choices for automatic cleanup after Windows Update reboots."
     Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task."
+    Write-Host "  5. Test for Windows AI targets: report only, changes nothing."
     Write-Host "  Q. Quit"
     Write-Host ""
 
-    $modeChoice = Read-WizardChoice -Prompt "Choose run mode" -Allowed @("1", "2", "3", "4", "Q")
+    $modeChoice = Read-WizardChoice -Prompt "Choose run mode" -Allowed @("1", "2", "3", "4", "5", "Q")
     if ($modeChoice -eq "Q") {
         Write-Host "Wizard cancelled."
         return
@@ -208,6 +210,7 @@ function Start-Wizard {
         "2" { "Apply now" }
         "3" { "Install post-update task" }
         "4" { "Uninstall post-update task" }
+        "5" { "Test for Windows AI targets" }
     }
 
     if ($modeChoice -eq "4") {
@@ -222,6 +225,23 @@ function Start-Wizard {
             -ScriptPath $uninstallerScript `
             -ExtraArgs @() `
             -ConfirmationWord "UNINSTALL"
+
+        return
+    }
+
+    if ($modeChoice -eq "5") {
+        Write-Host ""
+        Write-Host "This checks for known Windows AI policy values, Recall optional feature state,"
+        Write-Host "related Appx packages, and related running processes. It does not change anything."
+        Write-Host ""
+        Write-Host "Command:"
+        Write-Host (Format-CommandLine -ScriptPath $windowsAITestScript -ExtraArgs @())
+
+        Invoke-CommandPreview `
+            -Label "Running Windows AI detection report:" `
+            -ScriptPath $windowsAITestScript `
+            -ExtraArgs @() `
+            -ConfirmationWord $null
 
         return
     }
@@ -381,7 +401,8 @@ function Show-Menu {
     Write-Host "8. Install every-logon scheduled task"
     Write-Host "9. Install post-update task with OneDrive block and Edge update disable"
     Write-Host "10. Uninstall scheduled task"
-    Write-Host "11. Open walkthrough text"
+    Write-Host "11. Test for Windows AI targets"
+    Write-Host "12. Open walkthrough text"
     Write-Host "Q. Quit"
     Write-Host ""
 }
@@ -471,6 +492,13 @@ do {
                 -ConfirmationWord "UNINSTALL"
         }
         "11" {
+            Invoke-CommandPreview `
+                -Label "Running Windows AI detection report:" `
+                -ScriptPath $windowsAITestScript `
+                -ExtraArgs @() `
+                -ConfirmationWord $null
+        }
+        "12" {
             $walkthrough = Join-Path $scriptRoot "WALKTHROUGH.txt"
             if (Test-Path -LiteralPath $walkthrough) {
                 Get-Content -LiteralPath $walkthrough | more
