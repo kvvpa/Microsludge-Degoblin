@@ -158,6 +158,12 @@ GUI and README art is stored in `.\Assets`.
 
 See `.\WALKTHROUGH.txt`.
 
+## Support
+
+Microsludge Degoblin is free and open-source. If it saved you time or spared you a Windows-induced eye twitch, tips are appreciated but never required.
+
+Support the project through [GitHub Sponsors](https://github.com/sponsors/kvvpa).
+
 ## License
 
 MIT License. See `.\LICENSE`.
