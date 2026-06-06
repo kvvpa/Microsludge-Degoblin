@@ -62,8 +62,30 @@ function Invoke-CommandPreview {
     & powershell.exe @runArgs
 }
 
+function Show-Banner {
+    $banner = @(
+        " __  __ ___ ____ ____   ___  ____  _    _   _ ____   ____ _____",
+        "|  \/  |_ _/ ___|  _ \ / _ \/ ___|| |  | | | |  _ \ / ___| ____|",
+        "| |\/| || | |   | |_) | | | \___ \| |  | | | | | | | |  _|  _|",
+        "| |  | || | |___|  _ <| |_| |___) | |__| |_| | |_| | |_| | |___",
+        "|_|  |_|___\____|_| \_\\___/|____/|_____\___/|____/ \____|_____|",
+        "",
+        " ____  _____ ____  ___  ____  _     ___ _   _",
+        "|  _ \| ____/ ___|/ _ \| __ )| |   |_ _| \ | |",
+        "| | | |  _|| |  _| | | |  _ \| |    | ||  \| |",
+        "| |_| | |__| |_| | |_| | |_) | |___ | || |\  |",
+        "|____/|_____\____|\___/|____/|_____|___|_| \_|"
+    )
+
+    foreach ($line in $banner) {
+        Write-Host $line
+    }
+}
+
 function Show-Menu {
     Clear-Host
+    Show-Banner
+    Write-Host ""
     Write-Host "Microsludge Degoblin Walkthrough"
     Write-Host ""
     Write-Host "Default apply does real cleanup for Copilot, OneDrive startup, new Outlook,"
