@@ -13,14 +13,16 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $mainScript = Join-Path $scriptRoot "Microsludge-Degoblin.ps1"
 $installerScript = Join-Path $scriptRoot "Install-Microsludge-DegoblinTask.ps1"
+$uninstallerScript = Join-Path $scriptRoot "Uninstall-Microsludge-DegoblinTask.ps1"
 
-function Test-IsAdmin {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not (Test-Path -LiteralPath $helpers)) {
+    throw "Helper script not found: $helpers"
 }
+
+. $helpers
 
 function Invoke-CommandPreview {
     param(
@@ -191,10 +193,11 @@ function Start-Wizard {
     Write-Host "  1. Dry run now: logs what would change, changes nothing."
     Write-Host "  2. Apply now: performs the selected cleanup immediately."
     Write-Host "  3. Install post-update task: saves these choices for automatic cleanup after Windows Update reboots."
+    Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task."
     Write-Host "  Q. Quit"
     Write-Host ""
 
-    $modeChoice = Read-WizardChoice -Prompt "Choose run mode" -Allowed @("1", "2", "3", "Q")
+    $modeChoice = Read-WizardChoice -Prompt "Choose run mode" -Allowed @("1", "2", "3", "4", "Q")
     if ($modeChoice -eq "Q") {
         Write-Host "Wizard cancelled."
         return
@@ -204,10 +207,35 @@ function Start-Wizard {
         "1" { "Dry run now" }
         "2" { "Apply now" }
         "3" { "Install post-update task" }
+        "4" { "Uninstall post-update task" }
+    }
+
+    if ($modeChoice -eq "4") {
+        Write-Host ""
+        Write-Host "This removes the saved scheduled task. It does not undo previous cleanup changes."
+        Write-Host ""
+        Write-Host "Command:"
+        Write-Host (Format-CommandLine -ScriptPath $uninstallerScript -ExtraArgs @())
+
+        Invoke-CommandPreview `
+            -Label "Uninstalling post-update scheduled task:" `
+            -ScriptPath $uninstallerScript `
+            -ExtraArgs @() `
+            -ConfirmationWord "UNINSTALL"
+
+        return
     }
 
     Write-Host ""
     Write-Host "Step 1: choose cleanup targets."
+
+    $alwaysApply = $false
+    if ($modeChoice -eq "3") {
+        $alwaysApply = Read-WizardYesNo `
+            -Question "Run the scheduled task at every logon instead of only after Windows Update reboots?" `
+            -DefaultYes $false `
+            -Explanation "Default is safer: run only when the wrapper finds Windows Update reboot evidence. Pick yes if this should be routine logon cleanup."
+    }
 
     $includeCopilot = Read-WizardYesNo `
         -Question "Include Copilot cleanup?" `
@@ -256,34 +284,29 @@ function Start-Wizard {
         -DefaultYes $true `
         -Explanation "Turns off consumer-content suggestions, advertising ID, tailored experiences, widgets/news policy, activity upload, and SoftLanding-style tasks."
 
+    $selectedSwitches = @{
+        AlwaysApply = $alwaysApply
+        BlockOneDrive = $blockOneDrive
+        RemoveOneDrive = $removeOneDrive
+        DisableEdgeUpdates = $disableEdgeUpdates
+        SkipCopilot = -not $includeCopilot
+        SkipOneDrive = -not $includeOneDrive
+        SkipEdge = -not $includeEdge
+        SkipOutlook = -not $includeOutlook
+        SkipConsumerContent = -not $includeConsumerContent
+    }
+
+    $switchNames = if ($modeChoice -eq "3") {
+        Get-MicrosludgeWrapperSwitchNames
+    } else {
+        Get-MicrosludgeCleanupSwitchNames
+    }
+
     $extraArgs = @()
     if ($modeChoice -eq "2") {
         $extraArgs += "-Apply"
     }
-    if ($blockOneDrive) {
-        $extraArgs += "-BlockOneDrive"
-    }
-    if ($removeOneDrive) {
-        $extraArgs += "-RemoveOneDrive"
-    }
-    if ($disableEdgeUpdates) {
-        $extraArgs += "-DisableEdgeUpdates"
-    }
-    if (-not $includeCopilot) {
-        $extraArgs += "-SkipCopilot"
-    }
-    if (-not $includeOneDrive) {
-        $extraArgs += "-SkipOneDrive"
-    }
-    if (-not $includeEdge) {
-        $extraArgs += "-SkipEdge"
-    }
-    if (-not $includeOutlook) {
-        $extraArgs += "-SkipOutlook"
-    }
-    if (-not $includeConsumerContent) {
-        $extraArgs += "-SkipConsumerContent"
-    }
+    $extraArgs += Get-MicrosludgeSwitchArgumentList -Values $selectedSwitches -Names $switchNames
 
     $scriptPath = if ($modeChoice -eq "3") { $installerScript } else { $mainScript }
     $confirmationWord = $null
@@ -296,6 +319,9 @@ function Start-Wizard {
     Write-Host ""
     Write-Host "Step 2: review your choices."
     Write-Host "  Mode: $modeName"
+    if ($modeChoice -eq "3") {
+        Write-Host "  Run at every logon: $alwaysApply"
+    }
     Write-Host "  Copilot cleanup: $includeCopilot"
     Write-Host "  OneDrive startup cleanup: $includeOneDrive"
     Write-Host "  Block OneDrive sync: $blockOneDrive"
@@ -352,13 +378,15 @@ function Show-Menu {
     Write-Host "5. Apply plus block OneDrive and disable Edge updates"
     Write-Host "6. Apply plus uninstall OneDrive"
     Write-Host "7. Install post-update scheduled task"
-    Write-Host "8. Install post-update task with OneDrive block and Edge update disable"
-    Write-Host "9. Open walkthrough text"
+    Write-Host "8. Install every-logon scheduled task"
+    Write-Host "9. Install post-update task with OneDrive block and Edge update disable"
+    Write-Host "10. Uninstall scheduled task"
+    Write-Host "11. Open walkthrough text"
     Write-Host "Q. Quit"
     Write-Host ""
 }
 
-if (-not (Test-IsAdmin)) {
+if (-not (Test-MicrosludgeIsAdmin)) {
     Write-Host "ERROR: Microsludge Degoblin must be run from an Administrator PowerShell window."
     Write-Host "Right-click PowerShell, choose Run as administrator, then rerun this command."
     Write-Host "No cleanup, dry run, or scheduled-task install was started."
@@ -423,12 +451,26 @@ do {
         }
         "8" {
             Invoke-CommandPreview `
+                -Label "Install every-logon scheduled task:" `
+                -ScriptPath $installerScript `
+                -ExtraArgs @("-AlwaysApply") `
+                -ConfirmationWord "INSTALL"
+        }
+        "9" {
+            Invoke-CommandPreview `
                 -Label "Install post-update task with OneDrive block and Edge update disable:" `
                 -ScriptPath $installerScript `
                 -ExtraArgs @("-BlockOneDrive", "-DisableEdgeUpdates") `
                 -ConfirmationWord "INSTALL"
         }
-        "9" {
+        "10" {
+            Invoke-CommandPreview `
+                -Label "Uninstall scheduled task:" `
+                -ScriptPath $uninstallerScript `
+                -ExtraArgs @() `
+                -ConfirmationWord "UNINSTALL"
+        }
+        "11" {
             $walkthrough = Join-Path $scriptRoot "WALKTHROUGH.txt"
             if (Test-Path -LiteralPath $walkthrough) {
                 Get-Content -LiteralPath $walkthrough | more

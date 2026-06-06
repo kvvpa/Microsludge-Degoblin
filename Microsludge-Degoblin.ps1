@@ -43,6 +43,13 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+$helpers = Join-Path $PSScriptRoot "Microsludge-Degoblin.Helpers.ps1"
+if (-not (Test-Path -LiteralPath $helpers)) {
+    throw "Helper script not found: $helpers"
+}
+
+. $helpers
+
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logRoot = Join-Path $PSScriptRoot "Logs"
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
@@ -74,12 +81,6 @@ function Invoke-Fix {
     }
 }
 
-function Test-IsAdmin {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
 function Set-RegDword {
     param(
         [string]$Path,
@@ -88,6 +89,31 @@ function Set-RegDword {
     )
 
     reg.exe add $Path /v $Name /t REG_DWORD /d $Value /f | Out-Null
+}
+
+function Write-RegDwordCheck {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [int]$Expected
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Write-Log "WARNING: Registry path missing: $Path"
+        return
+    }
+
+    try {
+        $property = Get-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop
+        $actual = [int]$property.$Name
+        if ($actual -eq $Expected) {
+            Write-Log "OK: Registry $Path\$Name = $Expected"
+        } else {
+            Write-Log "WARNING: Registry $Path\$Name expected $Expected, found $actual"
+        }
+    } catch {
+        Write-Log "WARNING: Registry value missing or unreadable: $Path\$Name"
+    }
 }
 
 function Remove-AppxPackagesByPattern {
@@ -238,9 +264,19 @@ function Disable-ServiceIfPresent {
 Write-Log "Starting Microsludge-Degoblin.ps1"
 Write-Log "Mode: $(if ($Apply) { 'APPLY' } else { 'DRY RUN' })"
 Write-Log "Log: $logPath"
-Write-Log "Options: BlockOneDrive=$BlockOneDrive RemoveOneDrive=$RemoveOneDrive DisableEdgeUpdates=$DisableEdgeUpdates"
+$selectedSwitches = @{
+    BlockOneDrive = $BlockOneDrive.IsPresent
+    RemoveOneDrive = $RemoveOneDrive.IsPresent
+    DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    SkipCopilot = $SkipCopilot.IsPresent
+    SkipOneDrive = $SkipOneDrive.IsPresent
+    SkipEdge = $SkipEdge.IsPresent
+    SkipOutlook = $SkipOutlook.IsPresent
+    SkipConsumerContent = $SkipConsumerContent.IsPresent
+}
+Write-Log "Options: $(Get-MicrosludgeOptionSummary -Values $selectedSwitches -Names (Get-MicrosludgeCleanupSwitchNames))"
 
-if (-not (Test-IsAdmin)) {
+if (-not (Test-MicrosludgeIsAdmin)) {
     Write-Log "ERROR: This script must be run as Administrator."
     Write-Log "Open PowerShell as Administrator and rerun."
     exit 1
@@ -469,6 +505,44 @@ if ($edgeProcesses) {
     }
 } else {
     Write-Log "OK: No Edge browser/update processes found."
+}
+
+if ($Apply) {
+    Write-Log ""
+    Write-Log "REGISTRY POLICY CHECKS"
+
+    if (-not $SkipCopilot) {
+        Write-RegDwordCheck -Path "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot" -Name "TurnOffWindowsCopilot" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" -Name "TurnOffWindowsCopilot" -Expected 1
+    }
+
+    if (-not $SkipOneDrive -and $BlockOneDrive) {
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" -Name "DisableFileSyncNGSC" -Expected 1
+    }
+
+    if (-not $SkipEdge) {
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "StartupBoostEnabled" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "BackgroundModeEnabled" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "HideFirstRunExperience" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "HubsSidebarEnabled" -Expected 0
+    }
+
+    if (-not $SkipConsumerContent) {
+        Write-RegDwordCheck -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Expected 0
+        Write-RegDwordCheck -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy" -Name "TailoredExperiencesWithDiagnosticDataEnabled" -Expected 0
+        Write-RegDwordCheck -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SoftLandingEnabled" -Expected 0
+        Write-RegDwordCheck -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SystemPaneSuggestionsEnabled" -Expected 0
+        Write-RegDwordCheck -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableTailoredExperiencesWithDiagnosticData" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -Name "AllowTelemetry" -Expected 1
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "EnableActivityFeed" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "PublishUserActivities" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "UploadUserActivities" -Expected 0
+        Write-RegDwordCheck -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -Expected 0
+    }
+} else {
+    Write-Log "INFO: Registry policy checks skipped in dry run."
 }
 
 Write-Log ""

@@ -62,6 +62,7 @@ Wizard mode:
     - Dry run now: logs what would change, changes nothing
     - Apply now: performs the selected cleanup immediately
     - Install post-update task: saves the selected options for future Windows Update reboots
+    - Uninstall post-update task: removes the saved automatic cleanup task
 
 Manual dry run:
   powershell -ExecutionPolicy Bypass -File .\Microsludge-Degoblin.ps1
@@ -132,19 +133,35 @@ Optional stronger switches:
     Stops and disables edgeupdate and edgeupdatem services.
     This can affect Edge and WebView2 update freshness.
 
+  -AlwaysApply:
+    Scheduled-task installer/wrapper option.
+    Runs cleanup at every scheduled logon launch instead of only after Windows
+    Update reboot evidence is found.
+
 Scheduled task walkthrough:
 
   Install default post-update task:
     powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1
 
+  Install every-logon task:
+    powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
+
   Install stronger post-update task:
     powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
+
+  Remove scheduled task:
+    powershell -ExecutionPolicy Bypass -File .\Uninstall-Microsludge-DegoblinTask.ps1
 
   What the scheduled task does:
     - Runs at user logon
     - Waits two minutes
-    - Checks whether the most recent reboot appears tied to Windows Update
-    - Runs Microsludge-Degoblin.ps1 -Apply only when Windows Update evidence is found
+    - Checks whether the most recent reboot appears tied to Windows Update by default
+    - Runs Microsludge-Degoblin.ps1 -Apply when Windows Update evidence is found
+    - Skips the Windows Update evidence gate when installed with -AlwaysApply
+
+  Log pruning:
+    - Automated wrapper runs keep the 20 most recent logs
+    - Logs older than 90 days are removed
 
 What it intentionally does not do:
   - Does not move user folders or change shell-folder mappings

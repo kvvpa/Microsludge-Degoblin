@@ -57,6 +57,10 @@ Skip switches:
   These work with the main cleanup script and with the scheduled-task installer.
 
 Optional stronger switches:
+  -AlwaysApply
+      Scheduled-task installer/wrapper option. Runs cleanup at every scheduled
+      logon launch instead of only after Windows Update reboot evidence.
+
   -BlockOneDrive
       Sets the Windows policy that blocks OneDrive file sync.
 
@@ -71,15 +75,25 @@ Scheduled task:
   Install the Windows Update-aware scheduled task:
        powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1
 
+  Install an every-logon scheduled task:
+       powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -AlwaysApply
+
   Install it with stronger options:
        powershell -ExecutionPolicy Bypass -File .\Install-Microsludge-DegoblinTask.ps1 -BlockOneDrive -DisableEdgeUpdates
 
-  The task runs at logon, waits two minutes, and only applies cleanup when the last
-  reboot appears tied to Windows Update activity.
+  Remove the scheduled task:
+       powershell -ExecutionPolicy Bypass -File .\Uninstall-Microsludge-DegoblinTask.ps1
+
+  By default, the task runs at logon, waits two minutes, and only applies cleanup
+  when the last reboot appears tied to Windows Update activity. With -AlwaysApply,
+  it skips that Windows Update evidence gate.
 
 Logs:
   Logs are written to:
        .\Logs
+
+  Automated wrapper runs prune old logs:
+       keep the 20 most recent logs and remove logs older than 90 days
 
 Walkthrough:
   See:

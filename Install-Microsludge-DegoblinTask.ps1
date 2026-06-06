@@ -6,6 +6,7 @@ waits two minutes, then calls the Windows Update-aware wrapper.
 #>
 
 param(
+    [switch]$AlwaysApply,
     [switch]$BlockOneDrive,
     [switch]$RemoveOneDrive,
     [switch]$DisableEdgeUpdates,
@@ -19,18 +20,19 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $wrapper = Join-Path $scriptRoot "Invoke-Microsludge-Degoblin-AfterWindowsUpdate.ps1"
 $taskName = "Microsludge Degoblin After Windows Update"
 $taskPath = "\Microsludge-Degoblin\"
 $userId = "$env:USERDOMAIN\$env:USERNAME"
 
-function Test-IsAdmin {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not (Test-Path -LiteralPath $helpers)) {
+    throw "Helper script not found: $helpers"
 }
 
-if (-not (Test-IsAdmin)) {
+. $helpers
+
+if (-not (Test-MicrosludgeIsAdmin)) {
     throw "This installer must be run as Administrator."
 }
 
@@ -38,58 +40,30 @@ if (-not (Test-Path -LiteralPath $wrapper)) {
     throw "Wrapper script not found: $wrapper"
 }
 
-$argument = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}"' -f $wrapper
-if ($BlockOneDrive) {
-    $argument += " -BlockOneDrive"
-}
-if ($RemoveOneDrive) {
-    $argument += " -RemoveOneDrive"
-}
-if ($DisableEdgeUpdates) {
-    $argument += " -DisableEdgeUpdates"
-}
-if ($SkipCopilot) {
-    $argument += " -SkipCopilot"
-}
-if ($SkipOneDrive) {
-    $argument += " -SkipOneDrive"
-}
-if ($SkipEdge) {
-    $argument += " -SkipEdge"
-}
-if ($SkipOutlook) {
-    $argument += " -SkipOutlook"
-}
-if ($SkipConsumerContent) {
-    $argument += " -SkipConsumerContent"
+$switchValues = @{
+    AlwaysApply = $AlwaysApply.IsPresent
+    BlockOneDrive = $BlockOneDrive.IsPresent
+    RemoveOneDrive = $RemoveOneDrive.IsPresent
+    DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    SkipCopilot = $SkipCopilot.IsPresent
+    SkipOneDrive = $SkipOneDrive.IsPresent
+    SkipEdge = $SkipEdge.IsPresent
+    SkipOutlook = $SkipOutlook.IsPresent
+    SkipConsumerContent = $SkipConsumerContent.IsPresent
 }
 
-$options = @()
-if ($BlockOneDrive) {
-    $options += "BlockOneDrive"
-}
-if ($RemoveOneDrive) {
-    $options += "RemoveOneDrive"
-}
-if ($DisableEdgeUpdates) {
-    $options += "DisableEdgeUpdates"
-}
-if ($SkipCopilot) {
-    $options += "SkipCopilot"
-}
-if ($SkipOneDrive) {
-    $options += "SkipOneDrive"
-}
-if ($SkipEdge) {
-    $options += "SkipEdge"
-}
-if ($SkipOutlook) {
-    $options += "SkipOutlook"
-}
-if ($SkipConsumerContent) {
-    $options += "SkipConsumerContent"
-}
-$optionSummary = if ($options.Count -gt 0) { $options -join ", " } else { "default" }
+$taskArguments = @(
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-WindowStyle",
+    "Hidden",
+    "-File",
+    ('"{0}"' -f $wrapper)
+) + (Get-MicrosludgeSwitchArgumentList -Values $switchValues -Names (Get-MicrosludgeWrapperSwitchNames))
+
+$argument = $taskArguments -join " "
+$optionSummary = Get-MicrosludgeOptionSummary -Values $switchValues -Names (Get-MicrosludgeWrapperSwitchNames)
 
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
