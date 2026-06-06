@@ -42,6 +42,11 @@ What "apply" means:
   Running Microsludge-Degoblin.ps1 with -Apply performs the disablings, deletions,
   scheduled task changes, service changes, Appx removals, and registry policy edits.
 
+Admin requirement:
+  Run the wizard, dry run, apply, and scheduled-task installer from an
+  Administrator PowerShell window. The launcher and cleanup scripts stop if they
+  are not elevated.
+
 Recommended first run:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
 

@@ -1,8 +1,9 @@
 <#
 Interactive walkthrough for Microsludge Degoblin.
 
-This launcher does not hide what it runs. It shows the selected command, asks for
-confirmation before apply/removal paths, and then delegates to the real scripts.
+This launcher does not hide what it runs. It refuses to continue without admin,
+shows the selected command, asks for confirmation before apply/removal paths,
+and then delegates to the real scripts.
 #>
 
 param(
@@ -358,9 +359,11 @@ function Show-Menu {
 }
 
 if (-not (Test-IsAdmin)) {
-    Write-Host "This walkthrough should be run from an Administrator PowerShell window."
-    Write-Host "Dry run may work without admin, but apply/install paths need elevation."
+    Write-Host "ERROR: Microsludge Degoblin must be run from an Administrator PowerShell window."
+    Write-Host "Right-click PowerShell, choose Run as administrator, then rerun this command."
+    Write-Host "No cleanup, dry run, or scheduled-task install was started."
     Write-Host ""
+    exit 1
 }
 
 if ($Wizard) {

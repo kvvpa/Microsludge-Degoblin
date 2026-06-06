@@ -26,6 +26,8 @@ Default non-targets:
 
 Usage:
   1. Open PowerShell as Administrator.
+     Admin is required for dry run, apply, the wizard, and scheduled-task install.
+     The launcher and cleanup scripts stop if they are not elevated.
 
   2. Guided wizard:
        powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-Walkthrough.ps1 -Wizard
