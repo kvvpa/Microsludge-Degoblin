@@ -52,7 +52,7 @@ function New-MicrosludgeRestorePoint {
     try {
         Checkpoint-Computer -Description $Description -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
         if ($Writer) {
-            & $Writer "Restore point created."
+            & $Writer "Restore point requested. Windows may reuse a recent restore point instead of creating a new one."
         }
         return $true
     } catch {

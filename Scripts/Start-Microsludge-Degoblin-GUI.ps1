@@ -7,7 +7,17 @@ actual changes to the existing scripts.
 
 param(
     [switch]$NoSplash,
-    [switch]$SmokeTest
+    [switch]$SmokeTest,
+    [switch]$AlwaysApply,
+    [switch]$BlockOneDrive,
+    [switch]$RemoveOneDrive,
+    [switch]$DisableEdgeUpdates,
+    [switch]$DisableWindowsAI,
+    [switch]$SkipCopilot,
+    [switch]$SkipOneDrive,
+    [switch]$SkipEdge,
+    [switch]$SkipOutlook,
+    [switch]$SkipConsumerContent
 )
 
 $ErrorActionPreference = "Stop"
@@ -443,6 +453,22 @@ function Get-GuiSwitchValues {
     }
 }
 
+function Set-GuiSwitchValues {
+    param([hashtable]$Values)
+
+    $CheckAlwaysApply.IsChecked = [bool]$Values.AlwaysApply
+    $CheckBlockOneDrive.IsChecked = [bool]$Values.BlockOneDrive
+    $CheckRemoveOneDrive.IsChecked = [bool]$Values.RemoveOneDrive
+    $CheckDisableEdgeUpdates.IsChecked = [bool]$Values.DisableEdgeUpdates
+    $CheckWindowsAI.IsChecked = [bool]$Values.DisableWindowsAI
+    $CheckCopilot.IsChecked = -not [bool]$Values.SkipCopilot
+    $CheckOneDrive.IsChecked = -not [bool]$Values.SkipOneDrive
+    $CheckEdge.IsChecked = -not [bool]$Values.SkipEdge
+    $CheckOutlook.IsChecked = -not [bool]$Values.SkipOutlook
+    $CheckConsumerContent.IsChecked = -not [bool]$Values.SkipConsumerContent
+    Update-GuiSummary
+}
+
 function Get-GuiCleanupArgs {
     $values = Get-GuiSwitchValues
     return @(Get-MicrosludgeSwitchArgumentList -Values $values -Names (Get-MicrosludgeCleanupSwitchNames))
@@ -629,6 +655,7 @@ function Start-GuiWizard {
         }
     }
 
+    $originalSwitchValues = Get-GuiSwitchValues
     $steps = New-Object System.Collections.Generic.List[object]
     $steps.Add([pscustomobject]@{
         Title = "Start here"
@@ -844,6 +871,9 @@ function Start-GuiWizard {
     if ([bool]$state["Completed"]) {
         Add-GuiLog "Guided setup complete. Click Dry run to preview the selected cleanup."
         Update-GuiSummary
+    } else {
+        Set-GuiSwitchValues -Values $originalSwitchValues
+        Add-GuiLog "Guided setup cancelled. Selections restored."
     }
 }
 
@@ -865,6 +895,19 @@ foreach ($control in $optionControls) {
     $control.Add_Unchecked({ Update-GuiSummary })
 }
 
+Set-GuiSwitchValues -Values @{
+    AlwaysApply = $AlwaysApply.IsPresent
+    BlockOneDrive = $BlockOneDrive.IsPresent
+    RemoveOneDrive = $RemoveOneDrive.IsPresent
+    DisableEdgeUpdates = $DisableEdgeUpdates.IsPresent
+    DisableWindowsAI = $DisableWindowsAI.IsPresent
+    SkipCopilot = $SkipCopilot.IsPresent
+    SkipOneDrive = $SkipOneDrive.IsPresent
+    SkipEdge = $SkipEdge.IsPresent
+    SkipOutlook = $SkipOutlook.IsPresent
+    SkipConsumerContent = $SkipConsumerContent.IsPresent
+}
+
 $ElevateButton.Add_Click({
     $argList = @(
         "-NoProfile",
@@ -875,6 +918,7 @@ $ElevateButton.Add_Click({
         "-File",
         ('"{0}"' -f $PSCommandPath)
     )
+    $argList += Get-MicrosludgeSwitchArgumentList -Values (Get-GuiSwitchValues) -Names (Get-MicrosludgeWrapperSwitchNames)
 
     Start-Process -FilePath "powershell.exe" -ArgumentList ($argList -join " ") -Verb RunAs -WindowStyle Hidden -WorkingDirectory $repoRoot
     $window.Close()
@@ -952,9 +996,35 @@ $window.Add_ContentRendered({
     Add-GuiBanner
     Add-GuiLog "Microsludge Degoblin GUI ready."
     Add-GuiLog "Version: $packageVersion"
+    if (Test-Path -LiteralPath $installRoot) {
+        $installedVersion = Get-MicrosludgeVersion -Root $installRoot
+        if ($installedVersion -ne "unknown" -and $packageVersion -ne "unknown" -and $installedVersion -ne $packageVersion) {
+            Add-GuiLog "WARNING: Installed scheduled-task copy is version $installedVersion. This package is version $packageVersion. Reinstall the task to refresh the installed copy."
+        }
+    }
     Add-GuiLog "Run the AI report before enabling Windows AI cleanup."
     Update-GuiState
     Update-GuiSummary
+})
+
+$window.Add_Closing({
+    param($sender, $eventArgs)
+
+    if (-not $script:Busy) {
+        return
+    }
+
+    $result = [System.Windows.MessageBox]::Show(
+        $window,
+        "A command is still running. Close the GUI anyway?`r`n`r`nCleanup may keep running in a hidden PowerShell process.",
+        "Command still running",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Warning
+    )
+
+    if ($result -ne [System.Windows.MessageBoxResult]::Yes) {
+        $eventArgs.Cancel = $true
+    }
 })
 
 Update-GuiState
