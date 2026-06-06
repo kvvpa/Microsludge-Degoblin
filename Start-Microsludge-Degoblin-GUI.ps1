@@ -6,7 +6,8 @@ actual changes to the existing scripts.
 #>
 
 param(
-    [switch]$NoSplash
+    [switch]$NoSplash,
+    [switch]$SmokeTest
 )
 
 $ErrorActionPreference = "Stop"
@@ -275,7 +276,7 @@ function Add-GuiLog {
     param([string]$Message)
 
     $time = Get-Date -Format "HH:mm:ss"
-    $OutputBox.AppendText("[{0}] {1}`r`n" -f $time, $Message)
+    $OutputBox.AppendText("[$time] $Message`r`n")
     $OutputBox.ScrollToEnd()
 }
 
@@ -555,4 +556,15 @@ $window.Add_ContentRendered({
 
 Update-GuiState
 Update-GuiSummary
+
+if ($SmokeTest) {
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(400)
+    $timer.Add_Tick({
+        $timer.Stop()
+        $window.Close()
+    })
+    $timer.Start()
+}
+
 $window.ShowDialog() | Out-Null
