@@ -387,6 +387,47 @@ function Confirm-GuiAction {
     return $result -eq [System.Windows.MessageBoxResult]::Yes
 }
 
+function Invoke-GuiRestorePointOffer {
+    $result = [System.Windows.MessageBox]::Show(
+        $window,
+        "Create a Windows restore point before applying cleanup?`r`n`r`nRecommended. This can fail if System Protection is off or Windows recently created a restore point.",
+        "Create restore point?",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+
+    if ($result -ne [System.Windows.MessageBoxResult]::Yes) {
+        Add-GuiLog "Restore point skipped by user."
+        return $true
+    }
+
+    Add-GuiLog ""
+    Set-GuiBusy $true
+    $created = $false
+    try {
+        $created = New-MicrosludgeRestorePoint -Writer {
+            param([string]$Message)
+            Add-GuiLog $Message
+        }
+    } finally {
+        Set-GuiBusy $false
+    }
+
+    if ($created) {
+        return $true
+    }
+
+    $continueResult = [System.Windows.MessageBox]::Show(
+        $window,
+        "Restore point was not created.`r`n`r`nContinue applying cleanup anyway?",
+        "Restore point failed",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Warning
+    )
+
+    return $continueResult -eq [System.Windows.MessageBoxResult]::Yes
+}
+
 function Get-GuiSwitchValues {
     return @{
         AlwaysApply = [bool]$CheckAlwaysApply.IsChecked
@@ -668,7 +709,7 @@ function Start-GuiWizard {
     })
     $steps.Add([pscustomobject]@{
         Title = "Review"
-        Body = "Selections are now set on the main screen. Best next step: click Dry run. If the log looks right, use Apply for a one-time cleanup or Install task for future cleanup."
+        Body = "Selections are now set on the main screen. Best next step: click Dry run. If the log looks right, use Apply for a one-time cleanup or Install task for future cleanup. Apply will offer to create a Windows restore point first."
         ChoiceText = $null
         Control = $null
     })
@@ -860,6 +901,11 @@ $ApplyButton.Add_Click({
     }
 
     if (Confirm-GuiAction -Message $message -Title "Apply cleanup") {
+        if (-not (Invoke-GuiRestorePointOffer)) {
+            Add-GuiLog "Apply cancelled before cleanup."
+            return
+        }
+
         Invoke-GuiScript -Label "Applying selected cleanup." -ScriptPath $mainScript -ExtraArgs $args
     }
 })

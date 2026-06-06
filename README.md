@@ -2,7 +2,7 @@
 
 # Microsludge Degoblin
 
-Current version: `0.2.0` (see `VERSION`).
+Current version: `0.2.1` (see `VERSION`).
 
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
@@ -25,6 +25,7 @@ It has both a PowerShell console walkthrough and a GUI with guided setup, so use
 - Administrator approval for detection reports, dry run, apply, task install, and task removal
 - Task Scheduler enabled for the post-update automatic cleanup task
 - Free space in `C:\ProgramData` for the installed copy and logs
+- System Protection enabled if you want Windows restore point creation to succeed
 
 ## Default Targets
 
@@ -74,7 +75,9 @@ PowerShell launch, useful for debugging:
 powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-GUI.ps1
 ```
 
-The GUI includes guided setup, Windows AI detection, dry run, apply, scheduled-task install/removal, and log access.
+The GUI includes guided setup, Windows AI detection, dry run, apply, scheduled-task install/removal, and log access. Apply paths offer to create a Windows restore point first.
+
+Restore point creation uses Windows System Protection. If System Protection is off or Windows recently created a restore point, Windows may refuse the request. The tool warns you and asks whether to continue. Direct script runs and scheduled-task runs do not prompt.
 
 Guided console wizard:
 

@@ -42,6 +42,7 @@ System requirements:
   - Administrator approval for report, dry run, apply, task install, and task removal
   - Task Scheduler enabled for automatic cleanup
   - Free space in C:\ProgramData for the installed package copy and logs
+  - System Protection enabled if you want Windows restore point creation to succeed
 
 Recommended first run:
   GUI:
@@ -78,7 +79,7 @@ Wizard mode:
 
   Wizard run modes:
     - Dry run now: logs what would change, changes nothing
-    - Apply now: performs the selected cleanup immediately
+    - Apply now: offers a restore point, then performs the selected cleanup immediately
     - Install post-update task: installs a ProgramData copy and saves the selected options for runs when Windows Update evidence is found
     - Uninstall post-update task: removes the saved automatic cleanup task and installed ProgramData copy
     - Test for Windows AI targets: report only, changes nothing
@@ -108,6 +109,11 @@ Windows AI cleanup:
 
 Manual apply:
   powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply
+
+  The GUI and console walkthrough offer to create a Windows restore point before
+  apply. Restore point creation can fail if System Protection is off or Windows
+  recently created one. If it fails, the walkthrough asks whether to continue.
+  Direct script runs and scheduled-task runs do not prompt.
 
 Stronger manual apply:
   powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates

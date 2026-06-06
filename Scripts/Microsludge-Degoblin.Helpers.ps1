@@ -32,6 +32,38 @@ function Get-MicrosludgeVersion {
     }
 }
 
+function New-MicrosludgeRestorePoint {
+    param(
+        [string]$Description = "Microsludge Degoblin before cleanup",
+        [scriptblock]$Writer
+    )
+
+    if ($Writer) {
+        & $Writer "Creating Windows restore point: $Description"
+    }
+
+    if (-not (Get-Command Checkpoint-Computer -ErrorAction SilentlyContinue)) {
+        if ($Writer) {
+            & $Writer "WARNING: Restore point was not created. Checkpoint-Computer is unavailable in this PowerShell session."
+        }
+        return $false
+    }
+
+    try {
+        Checkpoint-Computer -Description $Description -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
+        if ($Writer) {
+            & $Writer "Restore point created."
+        }
+        return $true
+    } catch {
+        if ($Writer) {
+            & $Writer "WARNING: Restore point was not created: $($_.Exception.Message)"
+            & $Writer "WARNING: System Protection may be off, or Windows may be limiting restore point creation."
+        }
+        return $false
+    }
+}
+
 function Get-MicrosludgeCleanupSwitchNames {
     return @(
         "BlockOneDrive",

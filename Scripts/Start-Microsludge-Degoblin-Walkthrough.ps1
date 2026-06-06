@@ -13,11 +13,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptRoot
 $helpers = Join-Path $scriptRoot "Microsludge-Degoblin.Helpers.ps1"
 $mainScript = Join-Path $scriptRoot "Microsludge-Degoblin.ps1"
 $installerScript = Join-Path $scriptRoot "Install-Microsludge-DegoblinTask.ps1"
 $uninstallerScript = Join-Path $scriptRoot "Uninstall-Microsludge-DegoblinTask.ps1"
 $windowsAITestScript = Join-Path $scriptRoot "Test-Microsludge-WindowsAI.ps1"
+$walkthroughText = Join-Path $repoRoot "WALKTHROUGH.txt"
 
 if (-not (Test-Path -LiteralPath $helpers)) {
     throw "Helper script not found: $helpers"
@@ -30,7 +32,8 @@ function Invoke-CommandPreview {
         [string]$Label,
         [string]$ScriptPath,
         [string[]]$ExtraArgs,
-        [string]$ConfirmationWord
+        [string]$ConfirmationWord,
+        [switch]$OfferRestorePoint
     )
 
     if (-not (Test-Path -LiteralPath $ScriptPath)) {
@@ -57,6 +60,27 @@ function Invoke-CommandPreview {
         if ($answer -ne $ConfirmationWord) {
             Write-Host "Skipped."
             return
+        }
+    }
+
+    if ($OfferRestorePoint) {
+        $createRestorePoint = Read-WizardYesNo `
+            -Question "Create a Windows restore point before continuing?" `
+            -DefaultYes $true `
+            -Explanation "Recommended before apply. This can fail if System Protection is off or Windows recently created a restore point."
+
+        if ($createRestorePoint) {
+            $restorePointCreated = New-MicrosludgeRestorePoint -Writer { param($Message) Write-Host $Message }
+            if (-not $restorePointCreated) {
+                $continueAfterFailure = Read-WizardYesNo `
+                    -Question "Restore point was not created. Continue anyway?" `
+                    -DefaultYes $false `
+                    -Explanation "Pick no if you want to enable System Protection or create a restore point manually first."
+                if (-not $continueAfterFailure) {
+                    Write-Host "Skipped."
+                    return
+                }
+            }
         }
     }
 
@@ -179,7 +203,7 @@ function Start-Wizard {
     Write-Host ""
     Write-Host "Run modes:"
     Write-Host "  1. Dry run now: logs what would change, changes nothing."
-    Write-Host "  2. Apply now: performs the selected cleanup immediately."
+    Write-Host "  2. Apply now: offers a restore point, then performs the selected cleanup."
     Write-Host "  3. Install post-update task: copies this package to ProgramData and saves these choices for automatic cleanup when Windows Update evidence is found."
     Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task and installed ProgramData copy."
     Write-Host "  5. Test for Windows AI targets: report only, changes nothing."
@@ -392,7 +416,8 @@ function Start-Wizard {
         -Label $label `
         -ScriptPath $scriptPath `
         -ExtraArgs $extraArgs `
-        -ConfirmationWord $confirmationWord
+        -ConfirmationWord $confirmationWord `
+        -OfferRestorePoint:($modeChoice -eq "2")
 }
 
 function Show-Menu {
@@ -405,7 +430,7 @@ function Show-Menu {
     Write-Host "Edge background behavior, GameAssist, Microsoft consumer content, widgets,"
     Write-Host "and SoftLanding tasks."
     Write-Host ""
-    Write-Host "Dry run logs what would change. Apply performs the changes."
+    Write-Host "Dry run logs what would change. Apply offers a restore point, then performs the changes."
     Write-Host ""
     Write-Host "1. Guided step-by-step wizard"
     Write-Host "2. Dry run default cleanup"
@@ -456,28 +481,32 @@ do {
                 -Label "Apply default cleanup:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply") `
-                -ConfirmationWord "APPLY"
+                -ConfirmationWord "APPLY" `
+                -OfferRestorePoint
         }
         "4" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup and block OneDrive file sync:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-BlockOneDrive") `
-                -ConfirmationWord "APPLY"
+                -ConfirmationWord "APPLY" `
+                -OfferRestorePoint
         }
         "5" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup, block OneDrive, and disable Edge updates:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-BlockOneDrive", "-DisableEdgeUpdates") `
-                -ConfirmationWord "APPLY"
+                -ConfirmationWord "APPLY" `
+                -OfferRestorePoint
         }
         "6" {
             Invoke-CommandPreview `
                 -Label "Apply cleanup and uninstall OneDrive:" `
                 -ScriptPath $mainScript `
                 -ExtraArgs @("-Apply", "-RemoveOneDrive") `
-                -ConfirmationWord "REMOVE"
+                -ConfirmationWord "REMOVE" `
+                -OfferRestorePoint
         }
         "7" {
             Invoke-CommandPreview `
@@ -515,11 +544,10 @@ do {
                 -ConfirmationWord $null
         }
         "12" {
-            $walkthrough = Join-Path $scriptRoot "WALKTHROUGH.txt"
-            if (Test-Path -LiteralPath $walkthrough) {
-                Get-Content -LiteralPath $walkthrough | more
+            if (Test-Path -LiteralPath $walkthroughText) {
+                Get-Content -LiteralPath $walkthroughText | more
             } else {
-                Write-Host "Missing walkthrough: $walkthrough"
+                Write-Host "Missing walkthrough: $walkthroughText"
             }
         }
         "Q" {
