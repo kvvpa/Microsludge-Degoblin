@@ -6,9 +6,25 @@ Current version: `1.0.0` (see `VERSION`).
 
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
-It targets things like Copilot, OneDrive startup entries, new Outlook, Edge background behavior, widgets, ads, suggestions, and optional Windows AI policies. It can run once, do a dry run first, or install a scheduled task that re-checks after Windows Update activity.
+The main trick is the scheduled task. Most cleanup tools run once. Microsludge Degoblin can also install a small post-update watcher that re-applies your selected cleanup after Windows Update activity, because that is when the goblins usually crawl back out.
+
+It targets things like Copilot, OneDrive startup entries, new Outlook, Edge background behavior, widgets, ads, suggestions, and optional Windows AI policies. It can run once, do a dry run first, or install the scheduled task to keep those choices from quietly regressing after update cycles.
 
 It has both a PowerShell console walkthrough and a GUI with guided setup, so users do not have to memorize which switches do what.
+
+## What Makes It Different
+
+Microsludge Degoblin is not trying to be the biggest all-purpose Windows cleaner. It is built around one annoying pattern: Windows Update can bring back apps, settings, startup entries, and policy defaults you already turned off.
+
+The scheduled task is the keep-watch feature. When installed, the package copies itself to:
+
+```text
+C:\ProgramData\Microsludge-Degoblin
+```
+
+Then Windows Task Scheduler runs it shortly after logon. By default, it only applies cleanup when Windows Update evidence is found. If you choose `-AlwaysApply`, it applies your selected cleanup at every logon instead.
+
+That means you can clean the machine once, then let Microsludge Degoblin keep the beast at bay after update cycles instead of manually rerunning the tool every time Microsoft gets ideas.
 
 ## What Do I Click?
 
@@ -155,6 +171,8 @@ Optional stronger switches:
 - `-SkipRestorePoint`: Advanced option for direct apply runs. Skips the automatic restore point request. The GUI and console walkthrough use this after handling the restore point prompt themselves.
 
 ## Scheduled Task
+
+This is the main reason to install the tool instead of only running it once. The scheduled task is there to catch Windows Update regressions and re-apply the cleanup choices you selected.
 
 Installing the scheduled task copies the runnable package to:
 
