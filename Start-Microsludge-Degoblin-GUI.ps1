@@ -150,6 +150,16 @@ $xaml = @'
             <Setter Property="Background" Value="#71401E"/>
             <Setter Property="BorderBrush" Value="#D47B2B"/>
         </Style>
+        <Style x:Key="AdminButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Padding" Value="18,5"/>
+            <Setter Property="Background" Value="#9A351B"/>
+            <Setter Property="Foreground" Value="#FFF7E6"/>
+            <Setter Property="BorderBrush" Value="#FFB35C"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
     </Window.Resources>
     <Grid Margin="14">
         <Grid.RowDefinitions>
@@ -162,23 +172,27 @@ $xaml = @'
             <Image x:Name="HeaderImage" Height="118" Stretch="Uniform" HorizontalAlignment="Center"/>
         </Border>
 
-        <Grid Grid.Row="1" Margin="0,10,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Name="AdminStatusText"
-                       Grid.Column="0"
-                       Foreground="{StaticResource TextBrush}"
-                       FontSize="13"
-                       VerticalAlignment="Center"
-                       Text="Checking admin status..."/>
-            <Button x:Name="ElevateButton"
-                    Grid.Column="1"
-                    Width="150"
-                    Margin="12,0,0,0"
-                    Content="Relaunch as admin"/>
-        </Grid>
+        <Border x:Name="AdminNoticeBorder" Grid.Row="1" Margin="0,10,0,10" Background="#241812" BorderBrush="#D47B2B" BorderThickness="2" CornerRadius="6" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="AdminStatusText"
+                           Grid.Column="0"
+                           Foreground="#FFF0D2"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Text="Checking admin status..."/>
+                <Button x:Name="ElevateButton"
+                        Grid.Column="1"
+                        Width="190"
+                        Margin="14,0,0,0"
+                        Content="RUN AS ADMIN"
+                        Style="{StaticResource AdminButtonStyle}"/>
+            </Grid>
+        </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
@@ -263,6 +277,7 @@ $reader = New-Object System.Xml.XmlNodeReader $xml
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
 $HeaderImage = $window.FindName("HeaderImage")
+$AdminNoticeBorder = $window.FindName("AdminNoticeBorder")
 $AdminStatusText = $window.FindName("AdminStatusText")
 $ElevateButton = $window.FindName("ElevateButton")
 $GuideButton = $window.FindName("GuideButton")
@@ -399,15 +414,29 @@ function Update-GuiSummary {
     $OptionSummaryText.ToolTip = $summary
 }
 
+function Set-GuiBorderColor {
+    param(
+        [object]$Border,
+        [string]$Background,
+        [string]$BorderBrush
+    )
+
+    $converter = New-Object System.Windows.Media.BrushConverter
+    $Border.Background = $converter.ConvertFromString($Background)
+    $Border.BorderBrush = $converter.ConvertFromString($BorderBrush)
+}
+
 function Update-GuiState {
     $isAdmin = Test-MicrosludgeIsAdmin
     if ($isAdmin) {
-        $AdminStatusText.Text = "Administrator: yes. The degoblinator is armed, politely."
+        $AdminStatusText.Text = "ADMIN MODE ON - cleanup controls are enabled."
         $AdminStatusText.Foreground = [System.Windows.Media.Brushes]::LightGreen
+        Set-GuiBorderColor -Border $AdminNoticeBorder -Background "#102017" -BorderBrush "#78A868"
         $ElevateButton.Visibility = [System.Windows.Visibility]::Collapsed
     } else {
-        $AdminStatusText.Text = "Administrator: no. Relaunch elevated before running reports or changes."
+        $AdminStatusText.Text = "NOT ADMIN - click RUN AS ADMIN before reports, dry run, apply, or task install."
         $AdminStatusText.Foreground = [System.Windows.Media.Brushes]::Khaki
+        Set-GuiBorderColor -Border $AdminNoticeBorder -Background "#241812" -BorderBrush "#D47B2B"
         $ElevateButton.Visibility = [System.Windows.Visibility]::Visible
     }
 
