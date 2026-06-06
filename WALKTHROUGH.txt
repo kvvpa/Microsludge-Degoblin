@@ -37,6 +37,7 @@ Admin requirement:
 Recommended first run:
   GUI:
   Double-click Start-Microsludge-Degoblin-GUI.vbs
+  From PowerShell: .\Start-Microsludge-Degoblin-GUI.vbs
 
   GUI from PowerShell, useful for debugging:
   powershell -ExecutionPolicy Bypass -File .\Start-Microsludge-Degoblin-GUI.ps1

@@ -42,6 +42,12 @@ Double-click:
 Start-Microsludge-Degoblin-GUI.vbs
 ```
 
+From PowerShell:
+
+```powershell
+.\Start-Microsludge-Degoblin-GUI.vbs
+```
+
 The `.vbs` launcher starts the GUI without leaving a PowerShell console window open.
 
 PowerShell launch, useful for debugging:
