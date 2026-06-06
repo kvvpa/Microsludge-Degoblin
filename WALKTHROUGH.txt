@@ -113,7 +113,8 @@ Manual apply:
   The GUI and console walkthrough offer to create a Windows restore point before
   apply. Restore point creation can fail if System Protection is off or Windows
   recently created one. If it fails, the walkthrough asks whether to continue.
-  Direct script runs and scheduled-task runs do not prompt.
+  Direct script runs and scheduled-task runs attempt a restore point without
+  prompting and continue if Windows refuses.
 
 Stronger manual apply:
   powershell -ExecutionPolicy Bypass -File .\Scripts\Microsludge-Degoblin.ps1 -Apply -BlockOneDrive -DisableEdgeUpdates

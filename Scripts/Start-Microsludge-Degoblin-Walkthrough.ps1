@@ -36,6 +36,11 @@ function Invoke-CommandPreview {
         [switch]$OfferRestorePoint
     )
 
+    $effectiveExtraArgs = @($ExtraArgs)
+    if ($OfferRestorePoint -and -not ($effectiveExtraArgs -contains "-SkipRestorePoint")) {
+        $effectiveExtraArgs += "-SkipRestorePoint"
+    }
+
     if (-not (Test-Path -LiteralPath $ScriptPath)) {
         Write-Host ""
         Write-Host "Missing script: $ScriptPath"
@@ -48,7 +53,7 @@ function Invoke-CommandPreview {
         "Bypass",
         "-File",
         ('"{0}"' -f $ScriptPath)
-    ) + $ExtraArgs
+    ) + $effectiveExtraArgs
 
     Write-Host ""
     Write-Host $Label
@@ -89,7 +94,7 @@ function Invoke-CommandPreview {
         "Bypass",
         "-File",
         $ScriptPath
-    ) + $ExtraArgs
+    ) + $effectiveExtraArgs
 
     & powershell.exe @runArgs
 }

@@ -2,7 +2,7 @@
 
 # Microsludge Degoblin
 
-Current version: `0.2.2` (see `VERSION`).
+Current version: `0.2.3` (see `VERSION`).
 
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File .\Scripts\Start-Microsludge-Degoblin-GU
 
 The GUI includes guided setup, Windows AI detection, dry run, apply, scheduled-task install/removal, and log access. Apply paths offer to create a Windows restore point first.
 
-Restore point creation uses Windows System Protection. If System Protection is off or Windows recently created a restore point, Windows may refuse the request. The tool warns you and asks whether to continue. Direct script runs and scheduled-task runs do not prompt.
+Restore point creation uses Windows System Protection. If System Protection is off or Windows recently created a restore point, Windows may refuse the request. The GUI and console walkthrough warn you and ask whether to continue. Direct script runs and scheduled-task runs attempt a restore point without prompting and continue if Windows refuses.
 
 Guided console wizard:
 
@@ -152,6 +152,7 @@ Optional stronger switches:
 - `-RemoveOneDrive`: Runs `OneDriveSetup.exe /uninstall` when a local OneDrive installer is found.
 - `-DisableEdgeUpdates`: Disables MicrosoftEdgeUpdate scheduled tasks and `edgeupdate` / `edgeupdatem` services. This can also affect WebView2 update freshness, so it is opt-in.
 - `-DisableWindowsAI`: Applies Windows AI policies for Recall availability/snapshots, Click to Do, Settings AI agent, and Paint AI features. This does not remove the Recall optional feature bits.
+- `-SkipRestorePoint`: Advanced option for direct apply runs. Skips the automatic restore point request. The GUI and console walkthrough use this after handling the restore point prompt themselves.
 
 ## Scheduled Task
 

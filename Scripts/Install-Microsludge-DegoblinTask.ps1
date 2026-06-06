@@ -74,21 +74,11 @@ function Copy-MicrosludgePackageToInstallRoot {
         Copy-Item -LiteralPath $sourcePath -Destination $InstallRoot -Recurse -Force
     }
 
-    $rootFiles = @(
-        "README.md",
-        "WALKTHROUGH.txt",
-        "START-HERE.txt",
-        "START-HERE-Microsludge-Degoblin.vbs",
-        "LICENSE",
-        "VERSION"
-    )
-
-    foreach ($file in $rootFiles) {
-        $sourcePath = Join-Path $SourceRoot $file
-        if (Test-Path -LiteralPath $sourcePath) {
-            Copy-Item -LiteralPath $sourcePath -Destination $InstallRoot -Force
+    Get-ChildItem -LiteralPath $SourceRoot -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notmatch "^\." } |
+        ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Force
         }
-    }
 }
 
 if (-not (Test-MicrosludgeIsAdmin)) {

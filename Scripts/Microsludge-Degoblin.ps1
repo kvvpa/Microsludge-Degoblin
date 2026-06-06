@@ -36,6 +36,7 @@ param(
     [switch]$RemoveOneDrive,
     [switch]$DisableEdgeUpdates,
     [switch]$DisableWindowsAI,
+    [switch]$SkipRestorePoint,
     [switch]$SkipCopilot,
     [switch]$SkipOneDrive,
     [switch]$SkipEdge,
@@ -307,6 +308,12 @@ if (-not (Test-MicrosludgeIsAdmin)) {
     Write-Log "ERROR: This script must be run as Administrator."
     Write-Log "Open PowerShell as Administrator and rerun."
     exit 1
+}
+
+if ($Apply -and -not $SkipRestorePoint) {
+    Write-Log ""
+    Write-Log "RESTORE POINT"
+    $null = New-MicrosludgeRestorePoint -Writer { param($Message) Write-Log $Message }
 }
 
 if (-not $SkipOneDrive) {

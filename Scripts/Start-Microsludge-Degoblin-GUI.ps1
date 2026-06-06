@@ -950,6 +950,7 @@ $ApplyButton.Add_Click({
             return
         }
 
+        $args += "-SkipRestorePoint"
         Invoke-GuiScript -Label "Applying selected cleanup." -ScriptPath $mainScript -ExtraArgs $args
     }
 })
