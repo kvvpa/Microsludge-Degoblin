@@ -2,7 +2,7 @@
 
 # Microsludge Degoblin
 
-Current version: `1.0.0` (see `VERSION`).
+Current version: `1.0.1` (see `VERSION`).
 
 Microsludge Degoblin is a Windows cleanup tool for Microsoft components that keep coming back after updates.
 
