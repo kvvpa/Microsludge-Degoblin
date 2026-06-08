@@ -197,6 +197,102 @@ function Format-CommandLine {
     return $parts -join " "
 }
 
+function Show-LatestCleanupLog {
+    param(
+        [datetime]$After
+    )
+
+    $logRoot = Join-Path $repoRoot "Logs"
+    $latestLog = Get-ChildItem -Path $logRoot -Filter "Microsludge-Degoblin-*.log" -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -gt $After } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if ($latestLog) {
+        Get-Content -LiteralPath $latestLog.FullName | more
+    } else {
+        Write-Host "No log file found from this session."
+    }
+}
+
+function Start-DryRunFollowUp {
+    param(
+        [string[]]$CleanupArgs,
+        [datetime]$DryRunStartedAt
+    )
+
+    $savedCleanupArgs = @($CleanupArgs)
+
+    while ($true) {
+        Write-Host ""
+        Write-Host "Dry Run Follow-Up"
+        Write-Host ""
+        Write-Host "1. Review the dry-run log - highly recommended before changing anything"
+        Write-Host "2. Apply these exact selections now"
+        Write-Host "3. Apply now and install task for when Windows Update runs - highly recommended"
+        Write-Host "4. Apply now and install task that runs at every logon"
+        Write-Host "Q. Return"
+        Write-Host ""
+
+        $choice = Read-WizardChoice -Prompt "Choose next step" -Allowed @("1", "2", "3", "4", "Q")
+        $applyArgs = @("-Apply") + $savedCleanupArgs
+        $confirmationWord = if ($savedCleanupArgs -contains "-RemoveOneDrive") { "REMOVE" } else { "APPLY" }
+
+        switch ($choice) {
+            "1" {
+                Show-LatestCleanupLog -After $DryRunStartedAt
+            }
+            "2" {
+                Invoke-CommandPreview `
+                    -Label "Apply these exact dry-run selections:" `
+                    -ScriptPath $mainScript `
+                    -ExtraArgs $applyArgs `
+                    -ConfirmationWord $confirmationWord `
+                    -OfferRestorePoint
+
+                return
+            }
+            "3" {
+                Invoke-CommandPreview `
+                    -Label "Step 1 of 2: Install post-update scheduled task (Windows Update-aware):" `
+                    -ScriptPath $installerScript `
+                    -ExtraArgs $savedCleanupArgs `
+                    -ConfirmationWord "INSTALL"
+
+                Invoke-CommandPreview `
+                    -Label "Step 2 of 2: Apply these exact dry-run selections:" `
+                    -ScriptPath $mainScript `
+                    -ExtraArgs $applyArgs `
+                    -ConfirmationWord $confirmationWord `
+                    -OfferRestorePoint
+
+                return
+            }
+            "4" {
+                $alwaysApplyInstallArgs = @("-AlwaysApply") + @($savedCleanupArgs)
+
+                Invoke-CommandPreview `
+                    -Label "Step 1 of 2: Install every-logon scheduled task:" `
+                    -ScriptPath $installerScript `
+                    -ExtraArgs $alwaysApplyInstallArgs `
+                    -ConfirmationWord "INSTALL"
+
+                Invoke-CommandPreview `
+                    -Label "Step 2 of 2: Apply these exact dry-run selections:" `
+                    -ScriptPath $mainScript `
+                    -ExtraArgs $applyArgs `
+                    -ConfirmationWord $confirmationWord `
+                    -OfferRestorePoint
+
+                return
+            }
+            "Q" {
+                return
+            }
+        }
+    }
+}
+
 function Start-Wizard {
     Clear-Host
     Show-Banner
@@ -207,9 +303,9 @@ function Start-Wizard {
     Write-Host "and ask for confirmation before doing anything that changes the machine."
     Write-Host ""
     Write-Host "Run modes:"
-    Write-Host "  1. Dry run now: logs what would change, changes nothing."
-    Write-Host "  2. Apply now: offers a restore point, then performs the selected cleanup."
-    Write-Host "  3. Install post-update task: copies this package to ProgramData and saves these choices for automatic cleanup when Windows Update evidence is found."
+    Write-Host "  1. Dry run now: highly recommended first. Logs what would change, changes nothing."
+    Write-Host "  2. Apply now: recommended after reviewing dry run. Offers a restore point, then performs the selected cleanup."
+    Write-Host "  3. Install post-update task: highly recommended after your choices look right. Copies this package to ProgramData and saves these choices for automatic cleanup when Windows Update evidence is found."
     Write-Host "  4. Uninstall post-update task: removes the saved automatic cleanup task and installed ProgramData copy."
     Write-Host "  5. Test for Windows AI targets: report only, changes nothing."
     Write-Host "  Q. Quit"
@@ -270,7 +366,7 @@ function Start-Wizard {
         $alwaysApply = Read-WizardYesNo `
             -Question "Run the scheduled task at every logon instead of only when Windows Update evidence is found?" `
             -DefaultYes $false `
-            -Explanation "Default is safer: run only when the wrapper finds Windows Update evidence. Pick yes if this should be routine logon cleanup."
+            -Explanation "Highly recommended default: no, use Windows Update-aware mode. Pick yes only if this should run at every logon."
     }
 
     Write-Host ""
@@ -289,7 +385,7 @@ function Start-Wizard {
         $disableWindowsAI = Read-WizardYesNo `
             -Question "Include Windows AI cleanup?" `
             -DefaultYes $false `
-            -Explanation "Opt-in policy cleanup: disables Recall availability/snapshots, Click to Do, Settings AI agent, and Paint AI features. It does not remove Recall optional feature bits."
+            -Explanation "Opt-in policy cleanup. Recommended if: targets were found and you want Recall, Click to Do, Settings AI agent, and Paint AI features disabled by policy. Does not remove Recall optional feature bits."
     } else {
         Write-Host ""
         Write-Host "No Windows AI targets were found, so the Windows AI cleanup option is omitted."
@@ -298,12 +394,12 @@ function Start-Wizard {
     $includeCopilot = Read-WizardYesNo `
         -Question "Include Copilot cleanup?" `
         -DefaultYes $true `
-        -Explanation "Removes installed/provisioned Copilot packages and sets Windows Copilot off policies."
+        -Explanation "Highly recommended: removes installed and provisioned Copilot packages and sets Windows Copilot off policies."
 
     $includeOneDrive = Read-WizardYesNo `
         -Question "Include OneDrive startup cleanup?" `
         -DefaultYes $true `
-        -Explanation "Stops OneDrive if running, removes OneDrive startup entries, and disables OneDrive scheduled tasks. This does not uninstall OneDrive by itself."
+        -Explanation "Highly recommended: stops OneDrive if running, removes OneDrive startup entries, and disables OneDrive scheduled tasks. This does not uninstall OneDrive."
 
     $blockOneDrive = $false
     $removeOneDrive = $false
@@ -311,36 +407,52 @@ function Start-Wizard {
         $blockOneDrive = Read-WizardYesNo `
             -Question "Block OneDrive file sync by policy?" `
             -DefaultYes $false `
-            -Explanation "Stronger option: sets the machine policy that blocks OneDrive file sync. Pick yes only if OneDrive should stay off."
+            -Explanation "Stronger option. Recommended if: OneDrive sync should stay blocked at the machine-policy level."
 
         $removeOneDrive = Read-WizardYesNo `
             -Question "Uninstall OneDrive when the local uninstaller is found?" `
             -DefaultYes $false `
-            -Explanation "Strongest OneDrive option: runs OneDriveSetup.exe /uninstall. Startup cleanup is usually enough if you only want it out of the way."
+            -Explanation "Strongest OneDrive option. Recommended if: you want OneDrive removed, not just kept out of startup."
     }
 
     $includeEdge = Read-WizardYesNo `
         -Question "Include Edge background cleanup?" `
         -DefaultYes $true `
-        -Explanation "Removes Edge GameAssist, blocks Edge startup boost/background mode/sidebar behavior by policy, and removes Edge background autolaunch entries. It does not remove Edge itself."
+        -Explanation "Highly recommended: removes Edge GameAssist, blocks Edge startup boost, background mode, and sidebar behavior by policy. Does not remove Edge itself."
 
     $disableEdgeUpdates = $false
     if ($includeEdge) {
         $disableEdgeUpdates = Read-WizardYesNo `
             -Question "Disable Edge update services and scheduled tasks?" `
             -DefaultYes $false `
-            -Explanation "Stronger option: disables MicrosoftEdgeUpdate tasks plus edgeupdate and edgeupdatem services. This can affect Edge and WebView2 update freshness."
+            -Explanation "Stronger option. Recommended if: you want Edge and WebView2 update tasks and services disabled. This can affect Edge and WebView2 update freshness."
     }
 
     $includeOutlook = Read-WizardYesNo `
         -Question "Include new Outlook cleanup?" `
         -DefaultYes $true `
-        -Explanation "Removes Microsoft.OutlookForWindows installed and provisioned Appx packages."
+        -Explanation "Recommended if: you do not use the new standalone Outlook app (Microsoft.OutlookForWindows). This does not affect classic Office or Microsoft 365 Outlook."
 
     $includeConsumerContent = Read-WizardYesNo `
         -Question "Include Microsoft ads, suggestions, widgets, and SoftLanding cleanup?" `
         -DefaultYes $true `
-        -Explanation "Turns off consumer-content suggestions, advertising ID, tailored experiences, widgets/news policy, activity upload, and SoftLanding-style tasks."
+        -Explanation "Highly recommended: low-risk cleanup for noisy Windows ads, suggestions, widgets/news, activity upload, and SoftLanding tasks."
+
+    $wizardInstallTask = $false
+    $wizardAlwaysApply = $false
+    if ($modeChoice -eq "2") {
+        $wizardInstallTask = Read-WizardYesNo `
+            -Question "Also install the post-update scheduled task?" `
+            -DefaultYes $true `
+            -Explanation "Highly recommended if you haven't already. Copies the package to C:\ProgramData\Microsludge-Degoblin and runs cleanup automatically after future Windows Updates. This is separate from the cleanup about to run."
+
+        if ($wizardInstallTask) {
+            $wizardAlwaysApply = Read-WizardYesNo `
+                -Question "Run the task at every logon instead of only when Windows Update evidence is found?" `
+                -DefaultYes $false `
+                -Explanation "Highly recommended default: no, use Windows Update-aware mode. Choose yes only if you want routine cleanup at every logon."
+        }
+    }
 
     $selectedSwitches = @{
         AlwaysApply = $alwaysApply
@@ -366,6 +478,13 @@ function Start-Wizard {
         $extraArgs += "-Apply"
     }
     $extraArgs += Get-MicrosludgeSwitchArgumentList -Values $selectedSwitches -Names $switchNames
+
+    $installBeforeApplyArgs = Get-MicrosludgeSwitchArgumentList -Values $selectedSwitches -Names (Get-MicrosludgeCleanupSwitchNames)
+
+    $taskInstallArgs = @($installBeforeApplyArgs)
+    if ($wizardAlwaysApply) {
+        $taskInstallArgs = @("-AlwaysApply") + $taskInstallArgs
+    }
 
     $scriptPath = if ($modeChoice -eq "3") { $installerScript } else { $mainScript }
     $confirmationWord = $null
@@ -395,15 +514,27 @@ function Start-Wizard {
     Write-Host "  Disable Edge updates: $disableEdgeUpdates"
     Write-Host "  New Outlook cleanup: $includeOutlook"
     Write-Host "  Ads/suggestions/widgets cleanup: $includeConsumerContent"
+    if ($modeChoice -eq "2") {
+        Write-Host "  Install scheduled task: $wizardInstallTask"
+        if ($wizardInstallTask) {
+            Write-Host "  Task mode: $(if ($wizardAlwaysApply) { 'every logon' } else { 'Windows Update-aware' })"
+        }
+    }
     Write-Host ""
-    Write-Host "Command:"
-    Write-Host (Format-CommandLine -ScriptPath $scriptPath -ExtraArgs $extraArgs)
+    if ($modeChoice -eq "2" -and $wizardInstallTask) {
+        Write-Host "Commands (installer runs first, then cleanup):"
+        Write-Host (Format-CommandLine -ScriptPath $installerScript -ExtraArgs $taskInstallArgs)
+        Write-Host (Format-CommandLine -ScriptPath $mainScript -ExtraArgs $extraArgs)
+    } else {
+        Write-Host "Command:"
+        Write-Host (Format-CommandLine -ScriptPath $scriptPath -ExtraArgs $extraArgs)
+    }
 
     if ($modeChoice -eq "1") {
         $runDryRun = Read-WizardYesNo `
             -Question "Run this dry run now?" `
             -DefaultYes $true `
-            -Explanation "Dry run mode only reports what would change."
+            -Explanation "Dry run mode only reports what would change. After it completes, you will be offered options to review the log, apply, or install the scheduled task."
 
         if (-not $runDryRun) {
             Write-Host "Dry run skipped."
@@ -417,12 +548,33 @@ function Start-Wizard {
         "3" { "Installing wizard-selected post-update task:" }
     }
 
-    Invoke-CommandPreview `
-        -Label $label `
-        -ScriptPath $scriptPath `
-        -ExtraArgs $extraArgs `
-        -ConfirmationWord $confirmationWord `
-        -OfferRestorePoint:($modeChoice -eq "2")
+    $dryRunStartedAt = if ($modeChoice -eq "1") { Get-Date } else { $null }
+
+    if ($modeChoice -eq "2" -and $wizardInstallTask) {
+        Invoke-CommandPreview `
+            -Label "Step 1 of 2: Install post-update scheduled task:" `
+            -ScriptPath $installerScript `
+            -ExtraArgs $taskInstallArgs `
+            -ConfirmationWord "INSTALL"
+
+        Invoke-CommandPreview `
+            -Label "Step 2 of 2: Apply cleanup:" `
+            -ScriptPath $mainScript `
+            -ExtraArgs $extraArgs `
+            -ConfirmationWord $confirmationWord `
+            -OfferRestorePoint
+    } else {
+        Invoke-CommandPreview `
+            -Label $label `
+            -ScriptPath $scriptPath `
+            -ExtraArgs $extraArgs `
+            -ConfirmationWord $confirmationWord `
+            -OfferRestorePoint:($modeChoice -eq "2")
+    }
+
+    if ($modeChoice -eq "1") {
+        Start-DryRunFollowUp -CleanupArgs $installBeforeApplyArgs -DryRunStartedAt $dryRunStartedAt
+    }
 }
 
 function Show-Menu {
@@ -437,19 +589,19 @@ function Show-Menu {
     Write-Host ""
     Write-Host "Dry run logs what would change. Apply offers a restore point, then performs the changes."
     Write-Host ""
-    Write-Host "1. Guided step-by-step wizard"
-    Write-Host "2. Dry run default cleanup"
-    Write-Host "3. Apply default cleanup"
-    Write-Host "4. Apply plus block OneDrive file sync"
-    Write-Host "5. Apply plus block OneDrive and disable Edge updates"
-    Write-Host "6. Apply plus uninstall OneDrive"
-    Write-Host "7. Install post-update scheduled task"
-    Write-Host "8. Install every-logon scheduled task"
-    Write-Host "9. Install post-update task with OneDrive block and Edge update disable"
+    Write-Host "1.  Guided step-by-step wizard - highly recommended"
+    Write-Host "2.  Dry run default cleanup - highly recommended first"
+    Write-Host "3.  Apply default cleanup - recommended after dry run"
+    Write-Host "4.  Apply plus block OneDrive file sync - recommended if OneDrive sync should stay blocked"
+    Write-Host "5.  Apply plus block OneDrive and disable Edge updates - stronger option"
+    Write-Host "6.  Apply plus uninstall OneDrive - stronger option if startup cleanup is not enough"
+    Write-Host "7.  Install post-update scheduled task - highly recommended after choices look right"
+    Write-Host "8.  Install every-logon scheduled task - recommended only for routine startup cleanup"
+    Write-Host "9.  Install post-update task with OneDrive block and Edge update disable"
     Write-Host "10. Uninstall scheduled task and installed copy"
     Write-Host "11. Test for Windows AI targets"
     Write-Host "12. Open walkthrough text"
-    Write-Host "Q. Quit"
+    Write-Host "Q.  Quit"
     Write-Host ""
 }
 

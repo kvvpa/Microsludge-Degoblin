@@ -61,8 +61,24 @@ New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
 $logPath = Join-Path $logRoot "Microsludge-Degoblin-$timestamp.log"
 $packageVersion = Get-MicrosludgeVersion -Root $repoRoot
 
+$script:MicrosludgeStats = [ordered]@{
+    Fix = 0
+    WouldFix = 0
+    Warning = 0
+    Error = 0
+    Skipped = 0
+}
+
 function Write-Log {
     param([string]$Message)
+
+    switch -Regex ($Message) {
+        "^FIX:"      { $script:MicrosludgeStats.Fix++; break }
+        "^WOULD FIX:" { $script:MicrosludgeStats.WouldFix++; break }
+        "^WARNING:"  { $script:MicrosludgeStats.Warning++; break }
+        "^ERROR"     { $script:MicrosludgeStats.Error++; break }
+        "^SKIP:"     { $script:MicrosludgeStats.Skipped++; break }
+    }
 
     $line = "[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $Message
     Write-Host $line
@@ -139,6 +155,152 @@ function Write-RegDwordCheck {
         }
     } catch {
         Write-Log "WARNING: Registry value missing or unreadable: $Path\$Name"
+    }
+}
+
+function Write-HumanSummary {
+    $included = New-Object System.Collections.Generic.List[string]
+    $skipped = New-Object System.Collections.Generic.List[string]
+    $stronger = New-Object System.Collections.Generic.List[string]
+    $recommendations = New-Object System.Collections.Generic.List[string]
+
+    if (-not $SkipCopilot) {
+        $included.Add("Copilot package/startup/policy cleanup")
+        $recommendations.Add("Highly recommended: Copilot cleanup, if you do not want Copilot returning after updates.")
+    } else {
+        $skipped.Add("Copilot cleanup")
+        $recommendations.Add("Consider enabling: Copilot cleanup, unless you want Copilot available.")
+    }
+
+    if (-not $SkipOneDrive) {
+        $included.Add("OneDrive process/startup/task cleanup")
+        $recommendations.Add("Highly recommended: OneDrive startup cleanup, because it removes resurrection entries without uninstalling OneDrive.")
+        if ($BlockOneDrive) {
+            $stronger.Add("Block OneDrive file sync by policy")
+            $recommendations.Add("Recommended if: you want OneDrive sync blocked at the machine-policy level.")
+        } else {
+            $recommendations.Add("Stronger option available: -BlockOneDrive, recommended only if OneDrive sync should stay blocked by policy.")
+        }
+        if ($RemoveOneDrive) {
+            $stronger.Add("Run OneDrive uninstall when installer is found")
+            $recommendations.Add("Recommended if: you want OneDrive removed, not just kept out of startup.")
+        } else {
+            $recommendations.Add("Stronger option available: -RemoveOneDrive, recommended only if startup cleanup is not enough.")
+        }
+    } else {
+        $skipped.Add("OneDrive cleanup")
+        $recommendations.Add("Consider enabling: OneDrive cleanup, unless you actively use OneDrive startup/sync.")
+    }
+
+    if (-not $SkipEdge) {
+        $included.Add("Edge background/startup/GameAssist cleanup")
+        $recommendations.Add("Highly recommended: Edge background cleanup, because it leaves Edge installed but stops background/startup behavior.")
+        if ($DisableEdgeUpdates) {
+            $stronger.Add("Edge update task/service disable")
+            $recommendations.Add("Stronger option: Edge update tasks/services disabled. Omit -DisableEdgeUpdates if WebView2 or Edge update freshness matters more.")
+        } else {
+            $recommendations.Add("Stronger option available: -DisableEdgeUpdates, recommended only if Edge and WebView2 update freshness is not a concern.")
+        }
+    } else {
+        $skipped.Add("Edge cleanup")
+        $recommendations.Add("Consider enabling: Edge background cleanup, unless you want Edge background/startup behavior left alone.")
+    }
+
+    if (-not $SkipOutlook) {
+        $included.Add("New Outlook package cleanup")
+        $recommendations.Add("Recommended if: you do not use the new standalone Outlook app (Microsoft.OutlookForWindows). This does not affect classic Office or Microsoft 365 Outlook.")
+    } else {
+        $skipped.Add("New Outlook cleanup")
+        $recommendations.Add("Leave skipped: new Outlook cleanup, if you actually use the new Outlook app.")
+    }
+
+    if (-not $SkipConsumerContent) {
+        $included.Add("Microsoft ads/suggestions/widgets/activity/SoftLanding cleanup")
+        $recommendations.Add("Highly recommended: Microsoft consumer-content cleanup, because it is low-risk and targets noisy Windows defaults.")
+    } else {
+        $skipped.Add("Microsoft consumer-content cleanup")
+        $recommendations.Add("Consider enabling: Microsoft consumer-content cleanup, unless you want Windows suggestions/widgets/activity features left alone.")
+    }
+
+    if ($DisableWindowsAI) {
+        $stronger.Add("Windows AI policy cleanup")
+        $recommendations.Add("Recommended if: Windows AI targets were found and you want Recall/Click to Do/Settings AI/Paint AI disabled by policy.")
+    } else {
+        $skipped.Add("Windows AI policy cleanup")
+        $recommendations.Add("Optional: Windows AI cleanup is opt-in. Recommended only if detection finds targets or you want those policies set preemptively.")
+    }
+
+    Write-Log ""
+    Write-Log "========================================"
+    Write-Log "SUMMARY"
+    Write-Log "========================================"
+    Write-Log "Mode: $(if ($Apply) { 'APPLY' } else { 'DRY RUN' })"
+    Write-Log "Version: $packageVersion"
+    Write-Log "Log file: $logPath"
+
+    $activeFlags = @()
+    if ($BlockOneDrive)       { $activeFlags += "-BlockOneDrive" }
+    if ($RemoveOneDrive)      { $activeFlags += "-RemoveOneDrive" }
+    if ($DisableEdgeUpdates)  { $activeFlags += "-DisableEdgeUpdates" }
+    if ($DisableWindowsAI)    { $activeFlags += "-DisableWindowsAI" }
+    if ($SkipCopilot)         { $activeFlags += "-SkipCopilot" }
+    if ($SkipOneDrive)        { $activeFlags += "-SkipOneDrive" }
+    if ($SkipEdge)            { $activeFlags += "-SkipEdge" }
+    if ($SkipOutlook)         { $activeFlags += "-SkipOutlook" }
+    if ($SkipConsumerContent) { $activeFlags += "-SkipConsumerContent" }
+    Write-Log "Active flags: $(if ($activeFlags.Count -gt 0) { $activeFlags -join ' ' } else { 'defaults only' })"
+
+    if ($Apply) {
+        Write-Log "Plain English: cleanup actions were attempted. Review any WARNING or ERROR lines above. Reboot recommended."
+    } else {
+        Write-Log "Plain English: no changes were made. This run only reported what would change."
+    }
+
+    Write-Log "Included:"
+    foreach ($item in $included) {
+        Write-Log "  - $item"
+    }
+
+    if ($stronger.Count -gt 0) {
+        Write-Log "Strong/opt-in actions:"
+        foreach ($item in $stronger) {
+            Write-Log "  - $item"
+        }
+    } else {
+        Write-Log "Strong/opt-in actions: none selected"
+    }
+
+    if ($skipped.Count -gt 0) {
+        Write-Log "Skipped or left alone by selection:"
+        foreach ($item in $skipped) {
+            Write-Log "  - $item"
+        }
+    } else {
+        Write-Log "Skipped or left alone by selection: none"
+    }
+
+    Write-Log "Opinionated recommendations:"
+    foreach ($item in $recommendations) {
+        Write-Log "  - $item"
+    }
+
+    if ($Apply) {
+        Write-Log "Action count: $($script:MicrosludgeStats.Fix) cleanup groups attempted."
+    } else {
+        Write-Log "Would-fix count: $($script:MicrosludgeStats.WouldFix) cleanup groups would run if applied."
+    }
+
+    Write-Log "Warnings seen: $($script:MicrosludgeStats.Warning)"
+    Write-Log "Errors seen: $($script:MicrosludgeStats.Error)"
+
+    if ($script:MicrosludgeStats.Error -gt 0) {
+        Write-Log "Next step: search this log for ERROR before trusting the run."
+    } elseif ($script:MicrosludgeStats.Warning -gt 0) {
+        Write-Log "Next step: skim WARNING lines, then decide whether anything needs attention."
+    } elseif ($Apply) {
+        Write-Log "Next step: reboot when convenient."
+    } else {
+        Write-Log "Next step: use the walkthrough follow-up to review this log or apply these same selections."
     }
 }
 
@@ -616,7 +778,7 @@ if ($Apply) {
 
 Write-Log ""
 if (-not $Apply) {
-    Write-Log "Dry run complete. Re-run with -Apply to make changes."
+    Write-HumanSummary
 } else {
     Remove-MicrosludgeOldLogs `
         -LogRoot $logRoot `
@@ -625,6 +787,6 @@ if (-not $Apply) {
         -ExcludePath $logPath `
         -Logger { param($Message) Write-Log $Message }
 
-    Write-Log "Apply run complete. Reboot recommended."
+    Write-HumanSummary
 }
 
